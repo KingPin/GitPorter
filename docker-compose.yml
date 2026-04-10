@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    environment:
+      - GITHUB_TOKEN
+      - ACCESS_TOKEN
+      - GITEA_URL
+
+  test:
+    build: .
+    entrypoint: ["python", "-m", "pytest"]
+    command: ["tests/", "-v"]
+    environment:
+      - GITHUB_TOKEN
+      - ACCESS_TOKEN
+      - GITEA_URL
