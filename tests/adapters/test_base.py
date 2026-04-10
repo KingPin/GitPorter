@@ -1,5 +1,6 @@
-from github2gitea.adapters.base import Repo, MigrationResult, BaseAdapter
 import pytest
+
+from github2gitea.adapters.base import Repo, MigrationResult, BaseAdapter
 
 def test_repo_dataclass_defaults():
     repo = Repo(name="my-repo", clone_url="https://github.com/user/my-repo",

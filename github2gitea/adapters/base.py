@@ -24,11 +24,11 @@ class MigrationResult:
 
 class BaseAdapter(ABC):
     @abstractmethod
-    def list_repos(self, mode: str, user: str = None, org: str = None) -> list[Repo]:
-        """Fetch repos — handles pagination internally via Link header."""
+    def list_repos(self, mode: str, user: str | None = None, org: str | None = None) -> list[Repo]:
+        """Return all repos matching the given mode, handling pagination internally."""
 
     @abstractmethod
-    def create_mirror(self, repo: Repo, dest_org: str = None) -> MigrationResult:
+    def create_mirror(self, repo: Repo, dest_org: str | None = None) -> MigrationResult:
         """Create a mirror of repo in this adapter's platform."""
 
     @abstractmethod
@@ -37,4 +37,10 @@ class BaseAdapter(ABC):
 
     @abstractmethod
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
-        """Delete org and all its repos."""
+        """Delete org and all its repos.
+
+        Args:
+            org: Name of the organisation to delete.
+            force: Skip confirmation prompts when True.
+            dry_run: List what would be deleted without making any changes when True.
+        """
