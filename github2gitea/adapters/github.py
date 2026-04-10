@@ -35,7 +35,7 @@ class GitHubAdapter(BaseAdapter):
 
     def fetch_one_repo(self, repo_url: str) -> Repo:
         """Fetch a single repo by its GitHub URL."""
-        path = repo_url.replace("https://github.com/", "").rstrip(".git")
+        path = repo_url.replace("https://github.com/", "").removesuffix(".git")
         r = http_get_with_backoff(self._session, f"{GITHUB_API}/repos/{path}")
         return self._normalize(r.json())
 
