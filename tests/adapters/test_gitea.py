@@ -41,3 +41,14 @@ def test_create_mirror_422_allowed_domains(adapter):
         result = adapter.create_mirror(SAMPLE_REPO)
         assert result.status == "FAILED"
         assert "ALLOWED_DOMAINS" in result.reason
+
+def test_create_mirror_retries_on_transient_failure(adapter):
+    """create_mirror retries on 5xx and succeeds when a later attempt returns 201."""
+    responses = [
+        MagicMock(status_code=500),
+        MagicMock(status_code=201),
+    ]
+    with patch.object(adapter._session, "post", side_effect=responses):
+        with patch("github2gitea.adapters.gitea.time.sleep"):  # don't actually sleep
+            result = adapter.create_mirror(SAMPLE_REPO)
+    assert result.status == "MIGRATED"
