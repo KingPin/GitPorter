@@ -63,7 +63,7 @@ class GiteaAdapter(BaseAdapter):
             "mirror": True,
             "private": repo.private,
         }
-        if uid:
+        if uid is not None:
             payload["uid"] = uid
         if repo.private and auth_username and auth_token:
             payload["auth_username"] = auth_username
