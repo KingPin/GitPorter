@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
-from github2gitea.adapters import get_adapter, VALID_PLATFORMS
+from github2gitea.adapters import get_adapter
 from github2gitea.config import load_platform_config
 from github2gitea.core.migrator import Migrator
 
