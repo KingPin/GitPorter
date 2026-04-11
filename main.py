@@ -76,6 +76,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         ignore_names=ignore_names,
         enable_lfs=args.lfs,
         cleanup_action=args.cleanup_action,
+        include_releases=args.include_releases,
     )
     results = migrator.run(mode=args.mode, user=args.user, org=args.org, repo_url=args.repo)
     print_summary(results)
@@ -119,6 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--dry-run", action="store_true")
     m.add_argument("--lfs", action="store_true", help="Enable Git LFS support for mirrored repos")
     m.add_argument("--cleanup-action", dest="cleanup_action", choices=["archive", "delete"])
+    m.add_argument("--include-releases", dest="include_releases", action="store_true")
     m.set_defaults(func=cmd_migrate)
 
     # delete subcommand

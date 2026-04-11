@@ -74,3 +74,11 @@ class BaseAdapter(ABC):
 
     def delete_repo(self, name: str, owner: str) -> None:
         raise NotImplementedError(f"{self.platform_name} does not support repo deletion")
+
+    def fetch_releases(self, owner: str, repo_name: str) -> list[dict]:
+        """Fetch releases from source. Returns [] if not supported."""
+        return []
+
+    def mirror_releases(self, repo_name: str, owner: str, releases: list[dict]) -> None:
+        """Mirror releases to dest. No-op if not supported."""
+        return
