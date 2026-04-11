@@ -17,8 +17,8 @@ github2gitea/
 │   ├── github.py        # GitHub adapter (source + destination)
 │   ├── gitea.py         # Gitea adapter (source + destination + delete_org)
 │   ├── gitlab.py        # GitLab adapter (source + destination)
-│   ├── bitbucket.py     # Bitbucket adapter (source)
-│   └── forgejo.py       # Forgejo adapter (destination + delete_org)
+│   ├── bitbucket.py     # Bitbucket adapter (source + destination + delete_org)
+│   └── forgejo.py       # Forgejo adapter (destination + delete_org, inherits Gitea)
 └── core/
     ├── http.py          # Link header parsing + exponential backoff
     ├── filters.py       # Repo filtering (name glob, language, topic, ignore list)
@@ -37,9 +37,9 @@ main.py                  # CLI entry point
 | `GITHUB_TOKEN`          | GitHub source/destination                        |
 | `GITLAB_URL`            | GitLab source/destination                        |
 | `GITLAB_TOKEN`          | GitLab source/destination                        |
-| `BITBUCKET_WORKSPACE`   | Bitbucket source                                 |
-| `BITBUCKET_USERNAME`    | Bitbucket source                                 |
-| `BITBUCKET_APP_PASSWORD`| Bitbucket source                                 |
+| `BITBUCKET_WORKSPACE`   | Bitbucket source/destination                     |
+| `BITBUCKET_USERNAME`    | Bitbucket source/destination                     |
+| `BITBUCKET_APP_PASSWORD`| Bitbucket source/destination                     |
 | `FORGEJO_URL`           | Forgejo destination                              |
 | `FORGEJO_TOKEN`         | Forgejo destination                              |
 
@@ -63,10 +63,12 @@ docker compose run --rm app migrate --source github --dest gitea --mode user -u 
 docker compose run --rm app migrate --source github --dest gitea --mode star -u <user> -o <org>
 docker compose run --rm app migrate --source github --dest gitea --mode repo -r <url> -u <user>
 
-# New source platforms
+# Cross-platform examples (any source → any dest)
 docker compose run --rm app migrate --source gitlab --dest gitea --mode org -o mygroup
 docker compose run --rm app migrate --source bitbucket --dest gitea --mode org -o myworkspace
 docker compose run --rm app migrate --source gitea --dest forgejo --mode org -o myorg
+docker compose run --rm app migrate --source github --dest bitbucket --mode org -o myworkspace
+docker compose run --rm app migrate --source gitlab --dest github --mode org -o myorg
 
 # Filtering
 docker compose run --rm app migrate ... --filter-language python --filter-topic ml --filter-name "*-service"
@@ -87,13 +89,14 @@ docker compose run --rm app migrate ... --cleanup-action delete    # delete orph
 # Mirror releases from source to destination
 docker compose run --rm app migrate ... --include-releases
 
-# Delete a Gitea org and all its repos
+# Delete org/repos on any platform
 docker compose run --rm app delete --dest gitea -o <org> --dry-run   # preview
 docker compose run --rm app delete --dest gitea -o <org>              # interactive confirm
 docker compose run --rm app delete --dest gitea -o <org> --force      # no prompt (CI/CD)
-
-# Delete a Forgejo org and all its repos
 docker compose run --rm app delete --dest forgejo -o <org>
+docker compose run --rm app delete --dest github -o <org>             # deletes all repos + org
+docker compose run --rm app delete --dest gitlab -o <group>
+docker compose run --rm app delete --dest bitbucket -o <workspace>    # deletes all repos (workspace itself not deleted)
 ```
 
 ## Key Behaviors
@@ -105,6 +108,8 @@ docker compose run --rm app delete --dest forgejo -o <org>
 - **Release mirroring**: `--include-releases` copies releases and their assets to the destination
 - **Parallel migrations**: auto-scales workers based on repo count (<5=sequential, 5-20=3 workers, >20=up to 10)
 - **Rate limiting**: exponential backoff on GitHub 403/429 responses
+- **GitHub org as destination**: the org must already exist — GitHub does not allow API-based org creation
+- **Bitbucket delete**: `delete --dest bitbucket` removes all repos in the workspace but cannot delete the workspace itself (Bitbucket API limitation)
 - **422 error on Gitea/Forgejo**: means the source domain is not in `ALLOWED_DOMAINS` in the `app.ini [migrations]` section
 - **Dry run**: phases 1-3 (fetch/filter/resume-check) run fully — output shows exactly what would be migrated
 
