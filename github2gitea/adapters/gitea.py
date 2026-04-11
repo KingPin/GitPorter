@@ -80,8 +80,8 @@ class GiteaAdapter(BaseAdapter):
         }
         if uid is not None:
             payload["uid"] = uid
-        if repo.private and auth_username and auth_token:
-            payload["auth_username"] = auth_username
+        if auth_token:
+            payload["auth_username"] = auth_username or "oauth2"
             payload["auth_password"] = auth_token
 
         max_attempts, delay = 3, 5.0
@@ -99,7 +99,7 @@ class GiteaAdapter(BaseAdapter):
                     self._session.delete(f"{self._url}/api/v1/repos/{dest_org}/{repo.name}")
                 return MigrationResult(
                     repo_name=repo.name, status="FAILED",
-                    reason="HTTP 422: Ensure 'github.com' is in ALLOWED_DOMAINS in app.ini [migrations]",
+                    reason=f"HTTP 422: {r.text}",
                 )
             else:
                 logger.warning("Attempt %d/%d failed (HTTP %s). Retrying in %.0fs...",
