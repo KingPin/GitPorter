@@ -8,16 +8,13 @@ class BitbucketAdapter(BaseAdapter):
     Bitbucket API docs: https://developer.atlassian.com/cloud/bitbucket/rest/
     """
 
+    platform_name = "Bitbucket"
+
     def list_repos(self, mode: str, user: str | None = None, org: str | None = None) -> list[Repo]:
         raise NotImplementedError("Bitbucket adapter is not yet implemented.")
 
-    def create_mirror(self, repo: Repo, dest_org: str | None = None,
-                      uid: int | None = None, auth_username: str | None = None,
-                      auth_token: str | None = None, **kwargs) -> MigrationResult:
+    def create_mirror(self, repo: Repo, dest_org: str | None = None, **kwargs) -> MigrationResult:
         raise NotImplementedError
 
     def repo_exists(self, repo_name: str, owner: str) -> bool:
-        raise NotImplementedError
-
-    def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
         raise NotImplementedError
