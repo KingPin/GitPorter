@@ -16,18 +16,23 @@ class Migrator:
         language: str | None = None,
         topic: str | None = None,
         dest_org: str | None = None,
-        dest_uid: int | None = None,
-        auth_username: str | None = None,
-        auth_token: str | None = None,
+        ignore_names: list[str] | None = None,
+        enable_lfs: bool = False,
+        cleanup_action: str | None = None,
+        include_releases: bool = False,
+        visibility: str = "public",
+        source_token: str = "",
     ):
         self._source = source
         self._dest = dest
         self._dry_run = dry_run
-        self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic)
+        self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic, ignore_names=ignore_names)
         self._dest_org = dest_org
-        self._dest_uid = dest_uid
-        self._auth_username = auth_username
-        self._auth_token = auth_token
+        self._enable_lfs = enable_lfs
+        self._cleanup_action = cleanup_action
+        self._include_releases = include_releases
+        self._visibility = visibility
+        self._source_token = source_token
 
     def run(
         self,
@@ -38,19 +43,26 @@ class Migrator:
     ) -> list[MigrationResult]:
         # Phase 1: Fetch
         logger.info("Fetching repos from source...")
-        if mode == "repo" and hasattr(self._source, "fetch_one_repo"):
+        if mode == "repo":
             if not repo_url:
                 raise ValueError("--repo is required when --mode repo is used")
-            repos = [self._source.fetch_one_repo(repo_url)]
+            try:
+                repos = [self._source.fetch_one_repo(repo_url)]
+            except NotImplementedError as exc:
+                raise ValueError(
+                    "The selected source platform does not support --mode repo"
+                ) from exc
         else:
             repos = self._source.list_repos(mode=mode, user=user, org=org)
         logger.info("Fetched %d repos.", len(repos))
+        all_source_repos = repos  # save pre-filter list for cleanup phase
 
         # Phase 2: Filter
         repos = apply_filters(repos, **self._filter_kwargs)
         logger.info("%d repos after filtering.", len(repos))
 
         # Phase 3: Resume check — skip repos that already exist in destination
+        # dest_org should always be set for cross-platform migrations
         owner = self._dest_org or user or org
         to_migrate: list = []
         results: list[MigrationResult] = []
@@ -67,14 +79,44 @@ class Migrator:
             results += [MigrationResult(r.name, "SKIPPED", "dry run") for r in to_migrate]
             return results
 
-        migrate_kwargs = dict(
-            dest_org=self._dest_org,
-            uid=self._dest_uid,
-            auth_username=self._auth_username,
-            auth_token=self._auth_token,
-        )
-        results += run_parallel(
-            lambda repo: self._dest.create_mirror(repo, **migrate_kwargs),
+        dest_kwargs = self._dest.prepare_destination(self._dest_org, visibility=self._visibility) if self._dest_org else {}
+        if self._source_token:
+            dest_kwargs.setdefault("auth_token", self._source_token)
+        if self._enable_lfs:
+            dest_kwargs["enable_lfs"] = True
+
+        migrated_results = run_parallel(
+            lambda repo: self._dest.create_mirror(repo, dest_org=self._dest_org, **dest_kwargs),
             to_migrate,
         )
+        results += migrated_results
+
+        # Phase 4.5: Mirror releases (runs for MIGRATED and SKIPPED repos)
+        if self._include_releases and not self._dry_run:
+            migrated_names = {r.repo_name for r in results if r.status in ("MIGRATED", "SKIPPED")}
+            for repo in repos:  # repos = filtered list from Phase 2
+                if repo.name in migrated_names:
+                    releases = self._source.fetch_releases(repo.owner, repo.name)
+                    if releases:
+                        self._dest.mirror_releases(repo.name, self._dest_org or repo.owner, releases)
+                        logger.info("Mirrored %d releases for %s", len(releases), repo.name)
+
+        # Phase 5: Cleanup orphaned dest repos
+        if self._cleanup_action and self._dest_org and not self._dry_run:
+            try:
+                dest_names = self._dest.list_dest_repos(self._dest_org)
+            except NotImplementedError as e:
+                logger.warning("--cleanup-action ignored: %s", e)
+            else:
+                source_names = {r.name for r in all_source_repos}
+                orphans = [n for n in dest_names if n not in source_names]
+                logger.info("Cleanup: %d orphaned repos in dest.", len(orphans))
+                for name in orphans:
+                    if self._cleanup_action == "archive":
+                        self._dest.archive_repo(name, self._dest_org)
+                        logger.info("Archived orphan: %s", name)
+                    elif self._cleanup_action == "delete":
+                        self._dest.delete_repo(name, self._dest_org)
+                        logger.info("Deleted orphan: %s", name)
+
         return results

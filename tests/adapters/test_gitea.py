@@ -10,7 +10,7 @@ SAMPLE_REPO = Repo(
 
 @pytest.fixture
 def adapter():
-    return GiteaAdapter(url="http://gitea:3000", token="fake-token")
+    return GiteaAdapter(config={"url": "http://gitea:3000", "token": "fake-token"})
 
 def test_repo_exists_true(adapter):
     with patch.object(adapter._session, "get") as mock_get:
@@ -52,3 +52,24 @@ def test_create_mirror_retries_on_transient_failure(adapter):
         with patch("github2gitea.adapters.gitea.time.sleep"):  # don't actually sleep
             result = adapter.create_mirror(SAMPLE_REPO)
     assert result.status == "MIGRATED"
+
+
+def test_create_mirror_with_lfs(adapter):
+    """create_mirror with enable_lfs=True sends 'lfs': True in the POST payload."""
+    with patch.object(adapter._session, "post") as mock_post:
+        mock_post.return_value.status_code = 201
+        adapter.create_mirror(SAMPLE_REPO, enable_lfs=True)
+        call_payload = mock_post.call_args[1]["json"]
+        assert call_payload["lfs"] is True
+
+
+def test_prepare_destination_returns_uid_and_calls_ensure_org(adapter):
+    """prepare_destination calls ensure_org + get_org_uid and returns the uid dict."""
+    with patch.object(adapter, "ensure_org") as mock_ensure, \
+         patch.object(adapter, "get_org_uid", return_value=42) as mock_uid:
+        result = adapter.prepare_destination("myorg")
+    mock_ensure.assert_called_once_with("myorg", visibility="public")
+    mock_uid.assert_called_once_with("myorg")
+    assert result["uid"] == 42
+    assert "auth_username" in result
+    assert "auth_token" in result

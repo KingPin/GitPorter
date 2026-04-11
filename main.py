@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os
 import sys
 
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
-from github2gitea.adapters.github import GitHubAdapter
-from github2gitea.adapters.gitea import GiteaAdapter
+from github2gitea.adapters import get_adapter
+from github2gitea.config import load_platform_config
 from github2gitea.core.migrator import Migrator
 
 console = Console()
-
-
-def get_env(name: str, required: bool = True) -> str:
-    val = os.environ.get(name)
-    if required and not val:
-        console.print(f"[red]Error:[/red] Environment variable {name} is not set.")
-        sys.exit(1)
-    return val or ""
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -59,36 +50,36 @@ def _validate_migrate_args(args: argparse.Namespace) -> None:
         console.print("[red]Error:[/red] --mode user requires --user"); sys.exit(1)
     if args.mode == "star" and (not args.user or not args.org):
         console.print("[red]Error:[/red] --mode star requires --user and --org"); sys.exit(1)
-    if args.mode == "repo" and (not args.repo or not args.user):
-        console.print("[red]Error:[/red] --mode repo requires --repo and --user"); sys.exit(1)
+    if args.mode == "repo" and not args.repo:
+        console.print("[red]Error:[/red] --mode repo requires --repo"); sys.exit(1)
+    if args.source == "bitbucket" and args.mode == "star":
+        console.print("[red]Error:[/red] Bitbucket does not support --mode star"); sys.exit(1)
 
 
 def cmd_migrate(args: argparse.Namespace) -> None:
     _validate_migrate_args(args)
     setup_logging(args.verbose)
-    gitea_url    = get_env("GITEA_URL")
-    access_token = get_env("ACCESS_TOKEN")
-    github_token = get_env("GITHUB_TOKEN", required=False)
 
-    source_map = {"github": lambda: GitHubAdapter(token=github_token)}
-    dest_map   = {"gitea":  lambda: GiteaAdapter(url=gitea_url, token=access_token)}
-
-    source = source_map[args.source]()
-    dest   = dest_map[args.dest]()
-
-    dest_uid = None
-    if args.org:
-        dest.ensure_org(args.org, visibility=args.visibility or "public")
-        dest_uid = dest.get_org_uid(args.org)
+    source_cfg = load_platform_config(args.source)
+    dest_cfg   = load_platform_config(args.dest)
+    source = get_adapter(args.source, source_cfg)
+    dest   = get_adapter(args.dest,   dest_cfg)
 
     if args.dry_run:
         console.print("[bold yellow][DRY RUN][/bold yellow] No repos will be migrated.")
 
+    ignore_names = [s.strip() for s in args.ignore_repos.split(",") if s.strip()] if args.ignore_repos else None
+    source_token = source_cfg.get("token", "")
     migrator = Migrator(
         source=source, dest=dest, dry_run=args.dry_run,
         name_pattern=args.filter_name, language=args.filter_language,
-        topic=args.filter_topic, dest_org=args.org, dest_uid=dest_uid,
-        auth_username=args.user, auth_token=github_token,
+        topic=args.filter_topic, dest_org=args.org,
+        ignore_names=ignore_names,
+        enable_lfs=args.lfs,
+        cleanup_action=args.cleanup_action,
+        include_releases=args.include_releases,
+        visibility=args.visibility or "public",
+        source_token=source_token,
     )
     results = migrator.run(mode=args.mode, user=args.user, org=args.org, repo_url=args.repo)
     print_summary(results)
@@ -98,7 +89,11 @@ def cmd_migrate(args: argparse.Namespace) -> None:
 
 def cmd_delete(args: argparse.Namespace) -> None:
     setup_logging(args.verbose)
-    adapter = GiteaAdapter(url=get_env("GITEA_URL"), token=get_env("ACCESS_TOKEN"))
+    dest_cfg = load_platform_config(args.dest)
+    adapter  = get_adapter(args.dest, dest_cfg)
+    if not hasattr(adapter, "delete_org"):
+        console.print(f"[red]Error:[/red] Platform {args.dest!r} does not support delete_org.")
+        sys.exit(1)
     adapter.delete_org(org=args.org, force=args.force, dry_run=args.dry_run)
 
 
@@ -112,8 +107,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # migrate subcommand
     m = sub.add_parser("migrate", help="Mirror repos from source to destination")
-    m.add_argument("--source",  required=True, choices=["github"])  # gitlab/bitbucket: stubs not yet implemented
-    m.add_argument("--dest",    required=True, choices=["gitea"])
+    m.add_argument("--source",  required=True,
+                   choices=["github", "gitea", "gitlab", "bitbucket", "forgejo"])
+    m.add_argument("--dest",    required=True,
+                   choices=["github", "gitea", "gitlab", "forgejo"])
     m.add_argument("--mode",    required=True, choices=["org", "user", "star", "repo"])
     m.add_argument("--org",  "-o")
     m.add_argument("--user", "-u")
@@ -122,12 +119,16 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--filter-name",     dest="filter_name")
     m.add_argument("--filter-language", dest="filter_language")
     m.add_argument("--filter-topic",    dest="filter_topic")
+    m.add_argument("--ignore-repos",    dest="ignore_repos")
     m.add_argument("--dry-run", action="store_true")
+    m.add_argument("--lfs", action="store_true", help="Enable Git LFS support for mirrored repos")
+    m.add_argument("--cleanup-action", dest="cleanup_action", choices=["archive", "delete"])
+    m.add_argument("--include-releases", dest="include_releases", action="store_true")
     m.set_defaults(func=cmd_migrate)
 
     # delete subcommand
-    d = sub.add_parser("delete", help="Delete a Gitea org and all its repos")
-    d.add_argument("--dest", required=True, choices=["gitea"])
+    d = sub.add_parser("delete", help="Delete a platform org and all its repos")
+    d.add_argument("--dest", required=True, choices=["gitea", "forgejo"])
     d.add_argument("--org", "-o", required=True)
     d.add_argument("--dry-run", action="store_true")
     d.add_argument("--force",   action="store_true")
