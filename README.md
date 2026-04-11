@@ -48,6 +48,32 @@ Tokens and credentials for the platforms you use (see [Environment Variables](#e
 
 ## Quick Start
 
+### Option A — Pre-built image (recommended)
+
+Pull the image directly from GitHub Container Registry — no clone or build needed:
+
+```bash
+docker pull ghcr.io/kingpin/gitporter:latest
+```
+
+Create a `.env` file with your credentials (see [Environment Variables](#environment-variables)), then run:
+
+```bash
+docker run --rm --env-file .env ghcr.io/kingpin/gitporter:latest migrate \
+  --source github --dest gitea \
+  --mode org --org my-company
+```
+
+Pin to a specific build using a SHA tag for reproducible runs:
+
+```bash
+docker pull ghcr.io/kingpin/gitporter:sha-88f16a9
+```
+
+---
+
+### Option B — Build from source
+
 ```bash
 git clone https://github.com/KingPin/GitPorter.git
 cd GitPorter
