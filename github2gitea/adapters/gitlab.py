@@ -8,7 +8,7 @@ class GitLabAdapter(BaseAdapter):
     GitLab API docs: https://docs.gitlab.com/ee/api/projects.html
     """
 
-    platform_name = "GitLab"
+    platform_name = "gitlab"
 
     def list_repos(self, mode: str, user: str | None = None, org: str | None = None) -> list[Repo]:
         raise NotImplementedError("GitLab adapter is not yet implemented.")

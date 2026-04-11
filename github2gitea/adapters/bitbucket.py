@@ -8,7 +8,7 @@ class BitbucketAdapter(BaseAdapter):
     Bitbucket API docs: https://developer.atlassian.com/cloud/bitbucket/rest/
     """
 
-    platform_name = "Bitbucket"
+    platform_name = "bitbucket"
 
     def list_repos(self, mode: str, user: str | None = None, org: str | None = None) -> list[Repo]:
         raise NotImplementedError("Bitbucket adapter is not yet implemented.")
