@@ -126,6 +126,15 @@ class BitbucketAdapter(BaseAdapter):
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
+    def disable_workflows(self, repo_name: str, owner: str) -> None:
+        """Disable Bitbucket Pipelines on the repo."""
+        resp = self._session.put(
+            f"https://api.bitbucket.org/2.0/repositories/{owner}/{repo_name}/pipelines_config",
+            json={"enabled": False},
+        )
+        resp.raise_for_status()
+        logger.debug("Disabled Pipelines for %s/%s", owner, repo_name)
+
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
         """Delete all repos in a Bitbucket workspace (workspace itself cannot be deleted via API)."""
         url: str | None = f"https://api.bitbucket.org/2.0/repositories/{org}"

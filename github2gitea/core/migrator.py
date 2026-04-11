@@ -20,6 +20,7 @@ class Migrator:
         enable_lfs: bool = False,
         cleanup_action: str | None = None,
         include_releases: bool = False,
+        disable_workflows: bool = False,
         visibility: str = "public",
         source_token: str = "",
     ):
@@ -31,6 +32,7 @@ class Migrator:
         self._enable_lfs = enable_lfs
         self._cleanup_action = cleanup_action
         self._include_releases = include_releases
+        self._disable_workflows = disable_workflows
         self._visibility = visibility
         self._source_token = source_token
 
@@ -90,6 +92,17 @@ class Migrator:
             to_migrate,
         )
         results += migrated_results
+
+        # Phase 4.5: Disable workflows on freshly migrated repos
+        if self._disable_workflows:
+            dest_owner = self._dest_org or org or user
+            for result in migrated_results:
+                if result.status == "MIGRATED":
+                    try:
+                        self._dest.disable_workflows(result.repo_name, dest_owner)
+                        logger.info("Disabled workflows for %s", result.repo_name)
+                    except Exception as exc:
+                        logger.warning("Could not disable workflows for %s: %s", result.repo_name, exc)
 
         # Phase 4.5: Mirror releases (runs for MIGRATED and SKIPPED repos)
         if self._include_releases and not self._dry_run:

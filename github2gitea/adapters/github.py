@@ -147,6 +147,15 @@ class GitHubAdapter(BaseAdapter):
                 time.sleep(self._api_delay)
         return releases
 
+    def disable_workflows(self, repo_name: str, owner: str) -> None:
+        """Disable GitHub Actions on the repo."""
+        resp = self._session.put(
+            f"{self._api_base}/repos/{owner}/{repo_name}/actions/permissions",
+            json={"enabled": False},
+        )
+        resp.raise_for_status()
+        logger.debug("Disabled Actions for %s/%s", owner, repo_name)
+
     def prepare_destination(self, dest_org: str, visibility: str = "public") -> dict:
         """Ensure the GitHub org exists (it must already; GitHub doesn't allow API org creation).
         Returns empty dict — GitHub repos are created inside create_mirror directly."""

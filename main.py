@@ -78,6 +78,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         enable_lfs=args.lfs,
         cleanup_action=args.cleanup_action,
         include_releases=args.include_releases,
+        disable_workflows=args.disable_workflows,
         visibility=args.visibility or "public",
         source_token=source_token,
     )
@@ -124,6 +125,8 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--lfs", action="store_true", help="Enable Git LFS support for mirrored repos")
     m.add_argument("--cleanup-action", dest="cleanup_action", choices=["archive", "delete"])
     m.add_argument("--include-releases", dest="include_releases", action="store_true")
+    m.add_argument("--disable-workflows", dest="disable_workflows", action="store_true",
+                   help="Disable CI/CD workflows on the destination after migration")
     m.set_defaults(func=cmd_migrate)
 
     # delete subcommand
