@@ -4,21 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A Python tool for mirroring repos between Git platforms using a plugin/adapter pattern. Each platform (GitHub, Gitea, GitLab, Bitbucket) is a self-contained adapter. A pipeline orchestrator runs fetch → filter → resume-check → migrate → summary.
+A Python tool for mirroring repos between Git platforms using a plugin/adapter pattern. Each platform (GitHub, Gitea, GitLab, Bitbucket, Forgejo) is a self-contained adapter. A pipeline orchestrator runs fetch → filter → resume-check → migrate → summary.
 
 ## Project Structure
 
 ```
 github2gitea/
 ├── adapters/
+│   ├── __init__.py      # Adapter registry (_REGISTRY) — register new adapters here
 │   ├── base.py          # Repo, MigrationResult dataclasses + BaseAdapter ABC
-│   ├── github.py        # GitHub adapter (source)
+│   ├── github.py        # GitHub adapter (source + destination)
 │   ├── gitea.py         # Gitea adapter (source + destination + delete_org)
-│   ├── gitlab.py        # GitLab stub (not yet implemented)
-│   └── bitbucket.py     # Bitbucket stub (not yet implemented)
+│   ├── gitlab.py        # GitLab adapter (source + destination)
+│   ├── bitbucket.py     # Bitbucket adapter (source)
+│   └── forgejo.py       # Forgejo adapter (destination + delete_org)
 └── core/
+    ├── config.py        # Credential loading + validation per platform
     ├── http.py          # Link header parsing + exponential backoff
-    ├── filters.py       # Repo filtering (name glob, language, topic)
+    ├── filters.py       # Repo filtering (name glob, language, topic, ignore list)
     ├── parallel.py      # Auto-scaling ThreadPoolExecutor
     └── migrator.py      # Migration pipeline orchestrator
 main.py                  # CLI entry point
@@ -26,13 +29,21 @@ main.py                  # CLI entry point
 
 ## Environment Variables
 
-| Variable        | Required by         |
-|-----------------|---------------------|
-| `GITEA_URL`     | All commands        |
-| `ACCESS_TOKEN`  | All commands        |
-| `GITHUB_TOKEN`  | GitHub source only  |
+| Variable                | Required by                                      |
+|-------------------------|--------------------------------------------------|
+| `GITEA_URL`             | Gitea/Forgejo destination                        |
+| `GITEA_TOKEN`           | Gitea destination (or `ACCESS_TOKEN` fallback)   |
+| `ACCESS_TOKEN`          | Legacy fallback for `GITEA_TOKEN`                |
+| `GITHUB_TOKEN`          | GitHub source/destination                        |
+| `GITLAB_URL`            | GitLab source/destination                        |
+| `GITLAB_TOKEN`          | GitLab source/destination                        |
+| `BITBUCKET_WORKSPACE`   | Bitbucket source                                 |
+| `BITBUCKET_USERNAME`    | Bitbucket source                                 |
+| `BITBUCKET_APP_PASSWORD`| Bitbucket source                                 |
+| `FORGEJO_URL`           | Forgejo destination                              |
+| `FORGEJO_TOKEN`         | Forgejo destination                              |
 
-No trailing slash in `GITEA_URL`.
+No trailing slash in URL variables (`GITEA_URL`, `GITLAB_URL`, `FORGEJO_URL`).
 
 ## Running with Docker Compose
 
@@ -52,29 +63,59 @@ docker compose run --rm app migrate --source github --dest gitea --mode user -u 
 docker compose run --rm app migrate --source github --dest gitea --mode star -u <user> -o <org>
 docker compose run --rm app migrate --source github --dest gitea --mode repo -r <url> -u <user>
 
+# New source platforms
+docker compose run --rm app migrate --source gitlab --dest gitea --mode org -o mygroup
+docker compose run --rm app migrate --source bitbucket --dest gitea --mode org -o myworkspace
+docker compose run --rm app migrate --source gitea --dest forgejo --mode org -o myorg
+
 # Filtering
 docker compose run --rm app migrate ... --filter-language python --filter-topic ml --filter-name "*-service"
 
+# Ignore specific repos by name (comma-separated)
+docker compose run --rm app migrate ... --ignore-repos "repo1,repo2"
+
 # Dry run (shows what would happen without doing it)
 docker compose run --rm app migrate ... --dry-run
+
+# LFS support (mirror repos with LFS files)
+docker compose run --rm app migrate ... --lfs
+
+# Cleanup orphaned repos after migration
+docker compose run --rm app migrate ... --cleanup-action archive   # archive orphans
+docker compose run --rm app migrate ... --cleanup-action delete    # delete orphans
+
+# Mirror releases from source to destination
+docker compose run --rm app migrate ... --include-releases
 
 # Delete a Gitea org and all its repos
 docker compose run --rm app delete --dest gitea -o <org> --dry-run   # preview
 docker compose run --rm app delete --dest gitea -o <org>              # interactive confirm
 docker compose run --rm app delete --dest gitea -o <org> --force      # no prompt (CI/CD)
+
+# Delete a Forgejo org and all its repos
+docker compose run --rm app delete --dest forgejo -o <org>
 ```
 
 ## Key Behaviors
 
-- **Resume on failure**: re-run the same command — repos already in Gitea (HTTP 409) are skipped automatically
+- **Resume on failure**: re-run the same command — repos already at the destination (HTTP 409) are skipped automatically; works for cross-platform migrations too
+- **Repo ignore list**: use `--ignore-repos repo1,repo2` to skip specific repos by name during migration
+- **Git LFS**: use `--lfs` to mirror repos that contain LFS-tracked files
+- **Orphan cleanup**: `--cleanup-action archive|delete` removes repos from the destination that no longer exist in the source
+- **Release mirroring**: `--include-releases` copies releases and their assets to the destination
 - **Parallel migrations**: auto-scales workers based on repo count (<5=sequential, 5-20=3 workers, >20=up to 10)
 - **Rate limiting**: exponential backoff on GitHub 403/429 responses
-- **Gitea 422 error**: means `github.com` is not in `ALLOWED_DOMAINS` in Gitea's `app.ini [migrations]` section
+- **422 error on Gitea/Forgejo**: means the source domain is not in `ALLOWED_DOMAINS` in the `app.ini [migrations]` section
 - **Dry run**: phases 1-3 (fetch/filter/resume-check) run fully — output shows exactly what would be migrated
 
 ## Adding a New Adapter
 
 1. Create `github2gitea/adapters/<platform>.py`
-2. Implement all methods from `BaseAdapter` in `adapters/base.py`
-3. Add it to `source_map` / `dest_map` in `main.py`
-4. Add `--source` / `--dest` to the `choices=` in `build_parser()`
+2. Subclass `BaseAdapter` from `adapters/base.py`
+3. Set `platform_name = "<platform>"` class attribute
+4. Implement: `list_repos`, `create_mirror`, `repo_exists`
+5. Override `prepare_destination` if the destination needs pre-setup (e.g., Gitea/Forgejo needs org UID)
+6. Override `fetch_one_repo` if single-repo fetch is supported
+7. Add credentials to `core/config.py` — add to `_REQUIRED` dict and return a normalized dict
+8. Register in `adapters/__init__.py` — add to `_REGISTRY`
+9. Add `--source`/`--dest` to `choices=` in `build_parser()` in `main.py`
