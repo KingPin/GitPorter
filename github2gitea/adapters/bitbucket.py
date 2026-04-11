@@ -118,7 +118,9 @@ class BitbucketAdapter(BaseAdapter):
                 capture_output=True,
             )
             if push_result.returncode != 0:
-                raise RuntimeError(push_result.stderr.decode().strip())
+                err = push_result.stderr.decode().strip()
+                err = err.replace(self._app_password, "***").replace(encoded_password, "***")
+                raise RuntimeError(err)
 
             return MigrationResult(repo.name, "MIGRATED")
         except Exception as exc:
