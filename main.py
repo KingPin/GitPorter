@@ -68,10 +68,12 @@ def cmd_migrate(args: argparse.Namespace) -> None:
     if args.dry_run:
         console.print("[bold yellow][DRY RUN][/bold yellow] No repos will be migrated.")
 
+    ignore_names = [s.strip() for s in args.ignore_repos.split(",") if s.strip()] if args.ignore_repos else None
     migrator = Migrator(
         source=source, dest=dest, dry_run=args.dry_run,
         name_pattern=args.filter_name, language=args.filter_language,
         topic=args.filter_topic, dest_org=args.org,
+        ignore_names=ignore_names,
     )
     results = migrator.run(mode=args.mode, user=args.user, org=args.org, repo_url=args.repo)
     print_summary(results)
@@ -111,6 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--filter-name",     dest="filter_name")
     m.add_argument("--filter-language", dest="filter_language")
     m.add_argument("--filter-topic",    dest="filter_topic")
+    m.add_argument("--ignore-repos",    dest="ignore_repos")
     m.add_argument("--dry-run", action="store_true")
     m.set_defaults(func=cmd_migrate)
 
