@@ -60,7 +60,7 @@ class GiteaAdapter(BaseAdapter):
         """Ensure org exists and return migration kwargs with uid."""
         self.ensure_org(dest_org, visibility=visibility)
         uid = self.get_org_uid(dest_org)
-        return {"uid": uid, "auth_username": "", "auth_token": ""}
+        return {"uid": uid}
 
     def create_mirror(self, repo: Repo, dest_org: str | None = None, **kwargs) -> MigrationResult:
         """Migrate repo as a mirror into Gitea. Retries on transient failures."""
