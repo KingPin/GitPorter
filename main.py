@@ -70,10 +70,12 @@ def cmd_migrate(args: argparse.Namespace) -> None:
 
     ignore_names = [s.strip() for s in args.ignore_repos.split(",") if s.strip()] if args.ignore_repos else None
     source_token = source_cfg.get("token", "")
+    # In repo mode, -u is the destination owner (org or user); fall back to -o if provided
+    dest_org = args.org or (args.user if args.mode == "repo" else None)
     migrator = Migrator(
         source=source, dest=dest, dry_run=args.dry_run,
         name_pattern=args.filter_name, language=args.filter_language,
-        topic=args.filter_topic, dest_org=args.org,
+        topic=args.filter_topic, dest_org=dest_org,
         ignore_names=ignore_names,
         enable_lfs=args.lfs,
         cleanup_action=args.cleanup_action,
