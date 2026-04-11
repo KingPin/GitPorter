@@ -12,9 +12,10 @@ x-common-env: &common-env
   - FORGEJO_TOKEN
 
 services:
-  app:
+  gitporter:
     build: .
     image: gitporter:latest
+    container_name: gitporter
     restart: "no"
     environment: *common-env
     env_file:
@@ -24,6 +25,7 @@ services:
   test:
     build: .
     image: gitporter:latest
+    container_name: gitporter-test
     restart: "no"
     entrypoint: ["python", "-m", "pytest"]
     command: ["tests/", "-v"]
