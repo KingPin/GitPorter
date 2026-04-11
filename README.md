@@ -66,7 +66,7 @@ GITEA_TOKEN=your_gitea_token
 Run your first migration:
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org my-company
 ```
@@ -98,7 +98,7 @@ Set only the variables for the platforms you are using. All variables are read f
 ### `migrate` — mirror repos
 
 ```
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source <source> --dest <dest> --mode <mode> [options]
 ```
 
@@ -141,7 +141,7 @@ docker compose run --rm app migrate \
 > **Destructive.** Permanently deletes repos. Use `--dry-run` first.
 
 ```
-docker compose run --rm app delete --dest <dest> --org <org> [--dry-run] [--force]
+docker compose run --rm gitporter delete --dest <dest> --org <org> [--dry-run] [--force]
 ```
 
 Supported destinations: `github`, `gitea`, `gitlab`, `bitbucket`, `forgejo`
@@ -158,7 +158,7 @@ Supported destinations: `github`, `gitea`, `gitlab`, `bitbucket`, `forgejo`
 **Mirror a whole organisation (creates the Gitea org automatically):**
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme-corp --visibility private
 ```
@@ -166,7 +166,7 @@ docker compose run --rm app migrate \
 **Mirror your own repos to a personal Gitea account:**
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode user --user alice
 ```
@@ -174,7 +174,7 @@ docker compose run --rm app migrate \
 **Mirror a user's public repos into a Gitea org (archive/backup use case):**
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode user --user torvalds --org torvalds-mirror --visibility public
 ```
@@ -182,7 +182,7 @@ docker compose run --rm app migrate \
 **Mirror all your starred repos:**
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode star --user alice --org alice-stars
 ```
@@ -190,7 +190,7 @@ docker compose run --rm app migrate \
 **Mirror a single repo:**
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode repo --repo https://github.com/acme/widget --user alice
 ```
@@ -205,7 +205,7 @@ export GITLAB_TOKEN=glpat-xxxx
 export GITEA_URL=http://gitea:3000
 export GITEA_TOKEN=xxxx
 
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source gitlab --dest gitea \
   --mode org --org my-gitlab-group
 ```
@@ -219,7 +219,7 @@ export GITHUB_TOKEN=ghp_xxxx
 export FORGEJO_URL=https://forgejo.example.com
 export FORGEJO_TOKEN=xxxx
 
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest forgejo \
   --mode org --org my-company
 ```
@@ -235,7 +235,7 @@ export BITBUCKET_APP_PASSWORD=xxxx
 export GITEA_URL=http://gitea:3000
 export GITEA_TOKEN=xxxx
 
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source bitbucket --dest gitea \
   --mode org --org acme
 ```
@@ -247,7 +247,7 @@ docker compose run --rm app migrate \
 > The destination GitHub org must already exist — GitHub does not allow API-based org creation.
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source gitea --dest github \
   --mode org --org my-company
 ```
@@ -259,7 +259,7 @@ docker compose run --rm app migrate \
 Only migrate Python repos tagged `ml` whose names end in `-model`:
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --filter-language python \
@@ -272,7 +272,7 @@ Filters are ANDed — a repo must match all specified filters to be included.
 Skip specific repos by name:
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --ignore-repos "scratch,wip-project,old-monolith"
@@ -285,7 +285,7 @@ docker compose run --rm app migrate \
 For orgs that have repos using Git LFS:
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --lfs
@@ -298,7 +298,7 @@ docker compose run --rm app migrate \
 Copy releases and their uploaded assets alongside the code:
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --include-releases
@@ -311,7 +311,7 @@ docker compose run --rm app migrate \
 Prevent workflows from triggering on the destination immediately after import:
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --disable-workflows
@@ -325,19 +325,19 @@ After migrating, remove repos from the destination that no longer exist in the s
 
 ```bash
 # Preview what would be removed
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --cleanup-action archive --dry-run
 
 # Archive them (sets repos as archived, does not delete)
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --cleanup-action archive
 
 # Delete them permanently
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --cleanup-action delete
@@ -350,7 +350,7 @@ docker compose run --rm app migrate \
 Always a good idea before a large migration. Phases 1–3 (fetch, filter, resume-check) run in full — the output shows exactly what would be migrated, what already exists, and what would be skipped by filters. Nothing is written.
 
 ```bash
-docker compose run --rm app migrate \
+docker compose run --rm gitporter migrate \
   --source github --dest gitea \
   --mode org --org acme \
   --dry-run
@@ -368,13 +368,13 @@ Re-run the exact same command. The tool checks the destination before each migra
 
 ```bash
 # Preview
-docker compose run --rm app delete --dest gitea --org acme --dry-run
+docker compose run --rm gitporter delete --dest gitea --org acme --dry-run
 
 # Interactive (prompts you to type the org name to confirm)
-docker compose run --rm app delete --dest gitea --org acme
+docker compose run --rm gitporter delete --dest gitea --org acme
 
 # Non-interactive (for CI/CD)
-docker compose run --rm app delete --dest gitea --org acme --force
+docker compose run --rm gitporter delete --dest gitea --org acme --force
 ```
 
 ---

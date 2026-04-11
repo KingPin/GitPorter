@@ -57,46 +57,46 @@ docker compose build
 docker compose run --rm test
 
 # Migrate
-docker compose run --rm app migrate --source github --dest gitea --mode org -o <org> --visibility public
-docker compose run --rm app migrate --source github --dest gitea --mode user -u <user>
-docker compose run --rm app migrate --source github --dest gitea --mode user -u <user> -o <org>
-docker compose run --rm app migrate --source github --dest gitea --mode star -u <user> -o <org>
-docker compose run --rm app migrate --source github --dest gitea --mode repo -r <url> -u <user>
+docker compose run --rm gitporter migrate --source github --dest gitea --mode org -o <org> --visibility public
+docker compose run --rm gitporter migrate --source github --dest gitea --mode user -u <user>
+docker compose run --rm gitporter migrate --source github --dest gitea --mode user -u <user> -o <org>
+docker compose run --rm gitporter migrate --source github --dest gitea --mode star -u <user> -o <org>
+docker compose run --rm gitporter migrate --source github --dest gitea --mode repo -r <url> -u <user>
 
 # Cross-platform examples (any source → any dest)
-docker compose run --rm app migrate --source gitlab --dest gitea --mode org -o mygroup
-docker compose run --rm app migrate --source bitbucket --dest gitea --mode org -o myworkspace
-docker compose run --rm app migrate --source gitea --dest forgejo --mode org -o myorg
-docker compose run --rm app migrate --source github --dest bitbucket --mode org -o myworkspace
-docker compose run --rm app migrate --source gitlab --dest github --mode org -o myorg
+docker compose run --rm gitporter migrate --source gitlab --dest gitea --mode org -o mygroup
+docker compose run --rm gitporter migrate --source bitbucket --dest gitea --mode org -o myworkspace
+docker compose run --rm gitporter migrate --source gitea --dest forgejo --mode org -o myorg
+docker compose run --rm gitporter migrate --source github --dest bitbucket --mode org -o myworkspace
+docker compose run --rm gitporter migrate --source gitlab --dest github --mode org -o myorg
 
 # Filtering
-docker compose run --rm app migrate ... --filter-language python --filter-topic ml --filter-name "*-service"
+docker compose run --rm gitporter migrate ... --filter-language python --filter-topic ml --filter-name "*-service"
 
 # Ignore specific repos by name (comma-separated)
-docker compose run --rm app migrate ... --ignore-repos "repo1,repo2"
+docker compose run --rm gitporter migrate ... --ignore-repos "repo1,repo2"
 
 # Dry run (shows what would happen without doing it)
-docker compose run --rm app migrate ... --dry-run
+docker compose run --rm gitporter migrate ... --dry-run
 
 # LFS support (mirror repos with LFS files)
-docker compose run --rm app migrate ... --lfs
+docker compose run --rm gitporter migrate ... --lfs
 
 # Cleanup orphaned repos after migration
-docker compose run --rm app migrate ... --cleanup-action archive   # archive orphans
-docker compose run --rm app migrate ... --cleanup-action delete    # delete orphans
+docker compose run --rm gitporter migrate ... --cleanup-action archive   # archive orphans
+docker compose run --rm gitporter migrate ... --cleanup-action delete    # delete orphans
 
 # Mirror releases from source to destination
-docker compose run --rm app migrate ... --include-releases
+docker compose run --rm gitporter migrate ... --include-releases
 
 # Delete org/repos on any platform
-docker compose run --rm app delete --dest gitea -o <org> --dry-run   # preview
-docker compose run --rm app delete --dest gitea -o <org>              # interactive confirm
-docker compose run --rm app delete --dest gitea -o <org> --force      # no prompt (CI/CD)
-docker compose run --rm app delete --dest forgejo -o <org>
-docker compose run --rm app delete --dest github -o <org>             # deletes all repos + org
-docker compose run --rm app delete --dest gitlab -o <group>
-docker compose run --rm app delete --dest bitbucket -o <workspace>    # deletes all repos (workspace itself not deleted)
+docker compose run --rm gitporter delete --dest gitea -o <org> --dry-run   # preview
+docker compose run --rm gitporter delete --dest gitea -o <org>              # interactive confirm
+docker compose run --rm gitporter delete --dest gitea -o <org> --force      # no prompt (CI/CD)
+docker compose run --rm gitporter delete --dest forgejo -o <org>
+docker compose run --rm gitporter delete --dest github -o <org>             # deletes all repos + org
+docker compose run --rm gitporter delete --dest gitlab -o <group>
+docker compose run --rm gitporter delete --dest bitbucket -o <workspace>    # deletes all repos (workspace itself not deleted)
 ```
 
 ## Key Behaviors
