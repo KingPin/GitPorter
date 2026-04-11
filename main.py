@@ -110,7 +110,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--source",  required=True,
                    choices=["github", "gitea", "gitlab", "bitbucket", "forgejo"])
     m.add_argument("--dest",    required=True,
-                   choices=["github", "gitea", "gitlab", "forgejo"])
+                   choices=["github", "gitea", "gitlab", "bitbucket", "forgejo"])
     m.add_argument("--mode",    required=True, choices=["org", "user", "star", "repo"])
     m.add_argument("--org",  "-o")
     m.add_argument("--user", "-u")
@@ -128,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # delete subcommand
     d = sub.add_parser("delete", help="Delete a platform org and all its repos")
-    d.add_argument("--dest", required=True, choices=["gitea", "forgejo"])
+    d.add_argument("--dest", required=True, choices=["github", "gitea", "gitlab", "bitbucket", "forgejo"])
     d.add_argument("--org", "-o", required=True)
     d.add_argument("--dry-run", action="store_true")
     d.add_argument("--force",   action="store_true")
