@@ -17,6 +17,7 @@ def make_dest(existing=None):
     existing = existing or []
     m.repo_exists.side_effect = lambda name, owner: name in existing
     m.create_mirror.side_effect = lambda repo, **kw: MigrationResult(repo.name, "MIGRATED")
+    m.prepare_destination.return_value = {}
     return m
 
 def test_dry_run_skips_migration():
@@ -38,3 +39,15 @@ def test_language_filter_applied():
     results = migrator.run(mode="user", user="user")
     assert len(results) == 1
     assert results[0].repo_name == "go-repo"
+
+def test_repo_mode_calls_fetch_one_repo():
+    source = MagicMock()
+    repo = make_repo("my-repo")
+    source.fetch_one_repo.return_value = repo
+    dest = make_dest()
+    migrator = Migrator(source, dest)
+    results = migrator.run(mode="repo", repo_url="https://github.com/user/my-repo.git")
+    source.fetch_one_repo.assert_called_once_with("https://github.com/user/my-repo.git")
+    source.list_repos.assert_not_called()
+    assert len(results) == 1
+    assert results[0].repo_name == "my-repo"

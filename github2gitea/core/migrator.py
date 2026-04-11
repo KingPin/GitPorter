@@ -16,18 +16,12 @@ class Migrator:
         language: str | None = None,
         topic: str | None = None,
         dest_org: str | None = None,
-        dest_uid: int | None = None,
-        auth_username: str | None = None,
-        auth_token: str | None = None,
     ):
         self._source = source
         self._dest = dest
         self._dry_run = dry_run
         self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic)
         self._dest_org = dest_org
-        self._dest_uid = dest_uid
-        self._auth_username = auth_username
-        self._auth_token = auth_token
 
     def run(
         self,
@@ -38,7 +32,7 @@ class Migrator:
     ) -> list[MigrationResult]:
         # Phase 1: Fetch
         logger.info("Fetching repos from source...")
-        if mode == "repo" and hasattr(self._source, "fetch_one_repo"):
+        if mode == "repo":
             if not repo_url:
                 raise ValueError("--repo is required when --mode repo is used")
             repos = [self._source.fetch_one_repo(repo_url)]
@@ -51,6 +45,7 @@ class Migrator:
         logger.info("%d repos after filtering.", len(repos))
 
         # Phase 3: Resume check — skip repos that already exist in destination
+        # dest_org should always be set for cross-platform migrations
         owner = self._dest_org or user or org
         to_migrate: list = []
         results: list[MigrationResult] = []
@@ -67,14 +62,10 @@ class Migrator:
             results += [MigrationResult(r.name, "SKIPPED", "dry run") for r in to_migrate]
             return results
 
-        migrate_kwargs = dict(
-            dest_org=self._dest_org,
-            uid=self._dest_uid,
-            auth_username=self._auth_username,
-            auth_token=self._auth_token,
-        )
+        dest_kwargs = self._dest.prepare_destination(self._dest_org) if self._dest_org else {}
+
         results += run_parallel(
-            lambda repo: self._dest.create_mirror(repo, **migrate_kwargs),
+            lambda repo: self._dest.create_mirror(repo, dest_org=self._dest_org, **dest_kwargs),
             to_migrate,
         )
         return results
