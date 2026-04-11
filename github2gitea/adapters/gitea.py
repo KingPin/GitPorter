@@ -107,6 +107,36 @@ class GiteaAdapter(BaseAdapter):
         return MigrationResult(repo_name=repo.name, status="FAILED",
                                reason=f"Failed after {max_attempts} attempts")
 
+    def list_dest_repos(self, owner: str) -> list[str]:
+        """Return repo names in a Gitea org, using page-based pagination."""
+        page = 1
+        names: list[str] = []
+        while True:
+            resp = self._session.get(
+                f"{self._url}/api/v1/orgs/{owner}/repos",
+                params={"limit": 50, "page": page},
+            )
+            resp.raise_for_status()
+            batch = resp.json()
+            if not batch:
+                break
+            names.extend(r["name"] for r in batch)
+            page += 1
+        return names
+
+    def archive_repo(self, name: str, owner: str) -> None:
+        """Archive a repo in Gitea."""
+        resp = self._session.patch(
+            f"{self._url}/api/v1/repos/{owner}/{name}",
+            json={"archived": True},
+        )
+        resp.raise_for_status()
+
+    def delete_repo(self, name: str, owner: str) -> None:
+        """Delete a repo in Gitea."""
+        resp = self._session.delete(f"{self._url}/api/v1/repos/{owner}/{name}")
+        resp.raise_for_status()
+
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
         """Delete a Gitea org and all its repos. Supports dry run and force modes."""
         repos = self._paginate_names(org)
