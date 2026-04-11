@@ -132,3 +132,41 @@ def test_forgejo_normalized_keys(monkeypatch):
     assert set(cfg.keys()) == {"url", "token"}
     assert cfg["url"] == "https://forgejo.example.com"
     assert cfg["token"] == "fj-token"
+
+
+# ---------------------------------------------------------------------------
+# 6. Trailing slash stripped from URL-bearing platforms
+# ---------------------------------------------------------------------------
+
+def test_gitea_url_trailing_slash_stripped(monkeypatch):
+    monkeypatch.setenv("GITEA_URL", "https://gitea.example.com/")
+    monkeypatch.setenv("GITEA_TOKEN", "tok")
+    cfg = load_platform_config("gitea")
+    assert cfg["url"] == "https://gitea.example.com"
+
+
+def test_gitlab_url_trailing_slash_stripped(monkeypatch):
+    monkeypatch.setenv("GITLAB_URL", "https://gitlab.example.com/")
+    monkeypatch.setenv("GITLAB_TOKEN", "tok")
+    cfg = load_platform_config("gitlab")
+    assert cfg["url"] == "https://gitlab.example.com"
+
+
+def test_forgejo_url_trailing_slash_stripped(monkeypatch):
+    monkeypatch.setenv("FORGEJO_URL", "https://forgejo.example.com/")
+    monkeypatch.setenv("FORGEJO_TOKEN", "tok")
+    cfg = load_platform_config("forgejo")
+    assert cfg["url"] == "https://forgejo.example.com"
+
+
+# ---------------------------------------------------------------------------
+# 7. Partial missing vars still raises
+# ---------------------------------------------------------------------------
+
+def test_bitbucket_partial_missing_vars_raises(monkeypatch):
+    monkeypatch.setenv("BITBUCKET_WORKSPACE", "ws")
+    monkeypatch.delenv("BITBUCKET_USERNAME", raising=False)
+    monkeypatch.delenv("BITBUCKET_APP_PASSWORD", raising=False)
+    with pytest.raises(SystemExit) as exc:
+        load_platform_config("bitbucket")
+    assert exc.value.code == 1

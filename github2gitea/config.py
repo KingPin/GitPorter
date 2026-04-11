@@ -47,13 +47,13 @@ def load_platform_config(platform: str) -> dict:
     if platform == "gitea":
         token = os.environ.get("GITEA_TOKEN") or os.environ.get("ACCESS_TOKEN", "")
         return {
-            "url": os.environ.get("GITEA_URL", ""),
+            "url": os.environ.get("GITEA_URL", "").rstrip("/"),
             "token": token,
         }
 
     if platform == "gitlab":
         return {
-            "url": os.environ.get("GITLAB_URL", ""),
+            "url": os.environ.get("GITLAB_URL", "").rstrip("/"),
             "token": os.environ.get("GITLAB_TOKEN", ""),
         }
 
@@ -66,7 +66,7 @@ def load_platform_config(platform: str) -> dict:
 
     if platform == "forgejo":
         return {
-            "url":   os.environ.get("FORGEJO_URL", ""),
+            "url":   os.environ.get("FORGEJO_URL", "").rstrip("/"),
             "token": os.environ.get("FORGEJO_TOKEN", ""),
         }
 
