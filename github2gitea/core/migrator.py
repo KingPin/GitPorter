@@ -18,6 +18,7 @@ class Migrator:
         dest_org: str | None = None,
         ignore_names: list[str] | None = None,
         enable_lfs: bool = False,
+        cleanup_action: str | None = None,
     ):
         self._source = source
         self._dest = dest
@@ -25,6 +26,7 @@ class Migrator:
         self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic, ignore_names=ignore_names)
         self._dest_org = dest_org
         self._enable_lfs = enable_lfs
+        self._cleanup_action = cleanup_action
 
     def run(
         self,
@@ -42,6 +44,7 @@ class Migrator:
         else:
             repos = self._source.list_repos(mode=mode, user=user, org=org)
         logger.info("Fetched %d repos.", len(repos))
+        all_source_repos = repos  # save pre-filter list for cleanup phase
 
         # Phase 2: Filter
         repos = apply_filters(repos, **self._filter_kwargs)
@@ -73,4 +76,19 @@ class Migrator:
             lambda repo: self._dest.create_mirror(repo, dest_org=self._dest_org, **dest_kwargs),
             to_migrate,
         )
+
+        # Phase 5: Cleanup orphaned dest repos
+        if self._cleanup_action and self._dest_org and not self._dry_run:
+            source_names = {r.name for r in all_source_repos}
+            dest_names = self._dest.list_dest_repos(self._dest_org)
+            orphans = [n for n in dest_names if n not in source_names]
+            logger.info("Cleanup: %d orphaned repos in dest.", len(orphans))
+            for name in orphans:
+                if self._cleanup_action == "archive":
+                    self._dest.archive_repo(name, self._dest_org)
+                    logger.info("Archived orphan: %s", name)
+                elif self._cleanup_action == "delete":
+                    self._dest.delete_repo(name, self._dest_org)
+                    logger.info("Deleted orphan: %s", name)
+
         return results

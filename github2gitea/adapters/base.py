@@ -64,3 +64,13 @@ class BaseAdapter(ABC):
         to return {"uid": ..., "auth_username": ..., "auth_token": ...}.
         """
         return {}
+
+    def list_dest_repos(self, owner: str) -> list[str]:
+        """List repo names in dest org. Override in adapters that support cleanup."""
+        return []
+
+    def archive_repo(self, name: str, owner: str) -> None:
+        raise NotImplementedError(f"{self.platform_name} does not support repo archiving")
+
+    def delete_repo(self, name: str, owner: str) -> None:
+        raise NotImplementedError(f"{self.platform_name} does not support repo deletion")
