@@ -8,12 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 class GiteaAdapter(BaseAdapter):
-    def __init__(self, url: str, token: str, api_delay: float = 1.0):
-        self._url = url.rstrip("/")
+    platform_name = "gitea"
+
+    def __init__(self, config: dict, api_delay: float = 1.0):
+        self._url = config["url"].rstrip("/")
+        self._token = config["token"]
         self._api_delay = api_delay
         self._session = requests.Session()
         self._session.headers.update({
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {self._token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
         })
@@ -53,9 +56,18 @@ class GiteaAdapter(BaseAdapter):
         if r.status_code not in (201, 422):
             r.raise_for_status()
 
-    def create_mirror(self, repo: Repo, dest_org: str | None = None, uid: int | None = None,
-                      auth_username: str | None = None, auth_token: str | None = None) -> MigrationResult:
+    def prepare_destination(self, dest_org: str) -> dict:
+        """Ensure org exists and return migration kwargs with uid."""
+        self.ensure_org(dest_org)
+        uid = self.get_org_uid(dest_org)
+        return {"uid": uid, "auth_username": "", "auth_token": ""}
+
+    def create_mirror(self, repo: Repo, dest_org: str | None = None, **kwargs) -> MigrationResult:
         """Migrate repo as a mirror into Gitea. Retries on transient failures."""
+        uid = kwargs.get("uid")
+        auth_username = kwargs.get("auth_username", "")
+        auth_token = kwargs.get("auth_token", "")
+
         payload: dict = {
             "clone_addr": repo.clone_url,
             "repo_name": repo.name,
