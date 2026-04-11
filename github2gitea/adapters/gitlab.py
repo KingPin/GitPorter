@@ -136,6 +136,20 @@ class GitLabAdapter(BaseAdapter):
         return {"namespace_id": resp.json()["id"]}
 
     # ------------------------------------------------------------------
+    # Destination: disable CI/CD pipelines
+    # ------------------------------------------------------------------
+
+    def disable_workflows(self, repo_name: str, owner: str) -> None:
+        """Disable GitLab CI/CD pipelines on the project."""
+        encoded = urllib.parse.quote(f"{owner}/{repo_name}", safe="")
+        resp = self._session.put(
+            f"{self._url}/api/v4/projects/{encoded}",
+            json={"builds_access_level": "disabled"},
+        )
+        resp.raise_for_status()
+        logger.debug("Disabled CI/CD for %s/%s", owner, repo_name)
+
+    # ------------------------------------------------------------------
     # Destination: delete org / group
     # ------------------------------------------------------------------
 

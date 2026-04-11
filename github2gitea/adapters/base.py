@@ -82,3 +82,7 @@ class BaseAdapter(ABC):
     def mirror_releases(self, repo_name: str, owner: str, releases: list[dict]) -> None:
         """Mirror releases to dest. No-op if not supported."""
         return
+
+    def disable_workflows(self, repo_name: str, owner: str) -> None:
+        """Disable CI/CD workflows on the destination repo. No-op if not supported."""
+        return

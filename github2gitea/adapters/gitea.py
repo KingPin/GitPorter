@@ -137,6 +137,15 @@ class GiteaAdapter(BaseAdapter):
         resp = self._session.delete(f"{self._url}/api/v1/repos/{owner}/{name}")
         resp.raise_for_status()
 
+    def disable_workflows(self, repo_name: str, owner: str) -> None:
+        """Disable Gitea Actions on the repo."""
+        resp = self._session.patch(
+            f"{self._url}/api/v1/repos/{owner}/{repo_name}",
+            json={"has_actions": False},
+        )
+        resp.raise_for_status()
+        logger.debug("Disabled Actions for %s/%s", owner, repo_name)
+
     def mirror_releases(self, repo_name: str, owner: str, releases: list[dict]) -> None:
         """Mirror releases from source to Gitea, skipping already-existing tags."""
         # Fetch all existing release tags (paginated)
