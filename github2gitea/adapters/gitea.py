@@ -94,6 +94,9 @@ class GiteaAdapter(BaseAdapter):
                 return MigrationResult(repo_name=repo.name, status="SKIPPED",
                                        reason="already exists in Gitea")
             elif r.status_code == 422:
+                # Gitea may have created a broken repo entry before rejecting the clone — clean it up
+                if dest_org and self.repo_exists(repo.name, dest_org):
+                    self._session.delete(f"{self._url}/api/v1/repos/{dest_org}/{repo.name}")
                 return MigrationResult(
                     repo_name=repo.name, status="FAILED",
                     reason="HTTP 422: Ensure 'github.com' is in ALLOWED_DOMAINS in app.ini [migrations]",
