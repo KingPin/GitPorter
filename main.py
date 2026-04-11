@@ -51,7 +51,20 @@ def print_summary(results: list) -> None:
             console.print(f"  • {r.repo_name} — {r.reason}")
 
 
+def _validate_migrate_args(args: argparse.Namespace) -> None:
+    """Fail fast with a clear message when required per-mode flags are missing."""
+    if args.mode == "org" and not args.org:
+        console.print("[red]Error:[/red] --mode org requires --org"); sys.exit(1)
+    if args.mode == "user" and not args.user:
+        console.print("[red]Error:[/red] --mode user requires --user"); sys.exit(1)
+    if args.mode == "star" and (not args.user or not args.org):
+        console.print("[red]Error:[/red] --mode star requires --user and --org"); sys.exit(1)
+    if args.mode == "repo" and (not args.repo or not args.user):
+        console.print("[red]Error:[/red] --mode repo requires --repo and --user"); sys.exit(1)
+
+
 def cmd_migrate(args: argparse.Namespace) -> None:
+    _validate_migrate_args(args)
     setup_logging(args.verbose)
     gitea_url    = get_env("GITEA_URL")
     access_token = get_env("ACCESS_TOKEN")
@@ -59,11 +72,6 @@ def cmd_migrate(args: argparse.Namespace) -> None:
 
     source_map = {"github": lambda: GitHubAdapter(token=github_token)}
     dest_map   = {"gitea":  lambda: GiteaAdapter(url=gitea_url, token=access_token)}
-
-    if args.source not in source_map:
-        console.print(f"[red]Unknown source:[/red] {args.source}"); sys.exit(1)
-    if args.dest not in dest_map:
-        console.print(f"[red]Unknown destination:[/red] {args.dest}"); sys.exit(1)
 
     source = source_map[args.source]()
     dest   = dest_map[args.dest]()
@@ -104,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # migrate subcommand
     m = sub.add_parser("migrate", help="Mirror repos from source to destination")
-    m.add_argument("--source",  required=True, choices=["github", "gitlab", "bitbucket"])
+    m.add_argument("--source",  required=True, choices=["github"])  # gitlab/bitbucket: stubs not yet implemented
     m.add_argument("--dest",    required=True, choices=["gitea"])
     m.add_argument("--mode",    required=True, choices=["org", "user", "star", "repo"])
     m.add_argument("--org",  "-o")

@@ -39,6 +39,8 @@ class Migrator:
         # Phase 1: Fetch
         logger.info("Fetching repos from source...")
         if mode == "repo" and hasattr(self._source, "fetch_one_repo"):
+            if not repo_url:
+                raise ValueError("--repo is required when --mode repo is used")
             repos = [self._source.fetch_one_repo(repo_url)]
         else:
             repos = self._source.list_repos(mode=mode, user=user, org=org)

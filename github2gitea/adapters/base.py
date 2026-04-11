@@ -28,8 +28,25 @@ class BaseAdapter(ABC):
         """Return all repos matching the given mode, handling pagination internally."""
 
     @abstractmethod
-    def create_mirror(self, repo: Repo, dest_org: str | None = None) -> MigrationResult:
-        """Create a mirror of repo in this adapter's platform."""
+    def create_mirror(
+        self,
+        repo: Repo,
+        dest_org: str | None = None,
+        uid: int | None = None,
+        auth_username: str | None = None,
+        auth_token: str | None = None,
+        **kwargs,
+    ) -> MigrationResult:
+        """Create a mirror of repo in this adapter's platform.
+
+        Args:
+            repo: Repository metadata for the source repository.
+            dest_org: Destination organisation/user to create the mirror under.
+            uid: Optional numeric user/org ID used by some adapters (e.g. Gitea).
+            auth_username: Optional username for authenticated cloning of private repos.
+            auth_token: Optional token for authenticated cloning of private repos.
+            **kwargs: Forward-compatible adapter-specific options.
+        """
 
     @abstractmethod
     def repo_exists(self, repo_name: str, owner: str) -> bool:

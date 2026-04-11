@@ -1,4 +1,5 @@
 import logging
+import time
 import requests
 from .base import BaseAdapter, Repo, MigrationResult
 from ..core.http import parse_next_link, http_get_with_backoff
@@ -20,12 +21,15 @@ class GitHubAdapter(BaseAdapter):
         if mode == "org":
             return self._paginate(f"{GITHUB_API}/orgs/{org}/repos")
         elif mode == "user":
-            if org:
-                # All repos for user (including forks/collaborations)
-                return self._paginate(f"{GITHUB_API}/users/{user}/repos")
-            else:
-                # Only repos owned by user
+            if "Authorization" in self._session.headers:
+                # Authenticated: always use the /user/repos endpoint so that
+                # destination org does not accidentally change which repos are fetched.
                 return self._paginate(f"{GITHUB_API}/user/repos", params={"affiliation": "owner"})
+            else:
+                # Unauthenticated: fall back to the public endpoint (public repos only).
+                if not user:
+                    raise ValueError("--user is required for unauthenticated user-mode listing")
+                return self._paginate(f"{GITHUB_API}/users/{user}/repos")
         elif mode == "star":
             return self._paginate(f"{GITHUB_API}/users/{user}/starred")
         elif mode == "repo":
@@ -44,7 +48,9 @@ class GitHubAdapter(BaseAdapter):
         r = self._session.get(f"{GITHUB_API}/repos/{owner}/{repo_name}")
         return r.status_code == 200
 
-    def create_mirror(self, repo: Repo, dest_org: str | None = None) -> MigrationResult:
+    def create_mirror(self, repo: Repo, dest_org: str | None = None,
+                      uid: int | None = None, auth_username: str | None = None,
+                      auth_token: str | None = None, **kwargs) -> MigrationResult:
         raise NotImplementedError("GitHub as mirror destination is not yet supported")
 
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
@@ -53,7 +59,10 @@ class GitHubAdapter(BaseAdapter):
     def _paginate(self, url: str, params: dict | None = None) -> list[Repo]:
         repos = []
         params = {**(params or {}), "per_page": 100}
+        first_page = True
         while url:
+            if not first_page:
+                time.sleep(self._api_delay)
             response = http_get_with_backoff(self._session, url, params=params)
             data = response.json()
             if not data:
@@ -61,6 +70,7 @@ class GitHubAdapter(BaseAdapter):
             repos.extend(self._normalize(r) for r in data)
             url = parse_next_link(response.headers.get("Link"))
             params = {}  # next URL already encodes params
+            first_page = False
         return repos
 
     def _normalize(self, data: dict) -> Repo:
