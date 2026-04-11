@@ -11,7 +11,9 @@ class BitbucketAdapter(BaseAdapter):
     def list_repos(self, mode: str, user: str | None = None, org: str | None = None) -> list[Repo]:
         raise NotImplementedError("Bitbucket adapter is not yet implemented.")
 
-    def create_mirror(self, repo: Repo, dest_org: str | None = None) -> MigrationResult:
+    def create_mirror(self, repo: Repo, dest_org: str | None = None,
+                      uid: int | None = None, auth_username: str | None = None,
+                      auth_token: str | None = None, **kwargs) -> MigrationResult:
         raise NotImplementedError
 
     def repo_exists(self, repo_name: str, owner: str) -> bool:
