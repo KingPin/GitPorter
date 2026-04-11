@@ -1,6 +1,8 @@
 import logging
+import os
 import shutil
 import subprocess
+import tempfile
 import urllib.parse
 
 import requests
@@ -79,7 +81,8 @@ class GitLabAdapter(BaseAdapter):
 
     def create_mirror(self, repo: Repo, dest_org: str | None = None, **kwargs) -> MigrationResult:
         namespace_id = kwargs.get("namespace_id")
-        tmp_path = f"/tmp/{repo.name}.git"
+        tmp_dir = tempfile.mkdtemp()
+        tmp_path = os.path.join(tmp_dir, f"{repo.name}.git")
         try:
             payload: dict = {
                 "name": repo.name,
@@ -121,7 +124,7 @@ class GitLabAdapter(BaseAdapter):
         except Exception as exc:
             return MigrationResult(repo.name, "FAILED", str(exc))
         finally:
-            shutil.rmtree(tmp_path, ignore_errors=True)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     # ------------------------------------------------------------------
     # Destination: prepare namespace

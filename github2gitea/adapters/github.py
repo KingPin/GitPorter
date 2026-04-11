@@ -1,6 +1,8 @@
 import logging
+import os
 import shutil
 import subprocess
+import tempfile
 import time
 import requests
 from .base import BaseAdapter, Repo, MigrationResult
@@ -58,7 +60,8 @@ class GitHubAdapter(BaseAdapter):
 
     def create_mirror(self, repo: Repo, dest_org: str | None = None, **kwargs) -> MigrationResult:
         """Mirror repo to GitHub by cloning and push --mirror."""
-        tmp_path = f"/tmp/{repo.name}.git"
+        tmp_dir = tempfile.mkdtemp()
+        tmp_path = os.path.join(tmp_dir, f"{repo.name}.git")
         try:
             # Determine owner for the push destination
             owner = dest_org if dest_org else repo.owner
@@ -112,7 +115,7 @@ class GitHubAdapter(BaseAdapter):
         except Exception as exc:
             return MigrationResult(repo.name, "FAILED", str(exc))
         finally:
-            shutil.rmtree(tmp_path, ignore_errors=True)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def fetch_releases(self, owner: str, repo_name: str) -> list[dict]:
         """Fetch all releases for a repo from GitHub, handling pagination."""

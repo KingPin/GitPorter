@@ -77,6 +77,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         enable_lfs=args.lfs,
         cleanup_action=args.cleanup_action,
         include_releases=args.include_releases,
+        visibility=args.visibility or "public",
     )
     results = migrator.run(mode=args.mode, user=args.user, org=args.org, repo_url=args.repo)
     print_summary(results)

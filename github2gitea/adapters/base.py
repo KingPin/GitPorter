@@ -57,7 +57,7 @@ class BaseAdapter(ABC):
         """
         raise NotImplementedError(f"{self.platform_name} does not support single-repo fetch")
 
-    def prepare_destination(self, dest_org: str) -> dict:
+    def prepare_destination(self, dest_org: str, visibility: str = "public") -> dict:
         """Return adapter-specific kwargs to pass to create_mirror.
 
         Default returns an empty dict. Adapters like Gitea/Forgejo override this
@@ -67,7 +67,7 @@ class BaseAdapter(ABC):
 
     def list_dest_repos(self, owner: str) -> list[str]:
         """List repo names in dest org. Override in adapters that support cleanup."""
-        return []
+        raise NotImplementedError(f"{self.platform_name} does not support destination repo listing (required for --cleanup-action)")
 
     def archive_repo(self, name: str, owner: str) -> None:
         raise NotImplementedError(f"{self.platform_name} does not support repo archiving")
