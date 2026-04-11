@@ -71,7 +71,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
     github_token = get_env("GITHUB_TOKEN", required=False)
 
     source_map = {"github": lambda: GitHubAdapter(token=github_token)}
-    dest_map   = {"gitea":  lambda: GiteaAdapter(url=gitea_url, token=access_token)}
+    dest_map   = {"gitea":  lambda: GiteaAdapter(config={"url": gitea_url, "token": access_token})}
 
     source = source_map[args.source]()
     dest   = dest_map[args.dest]()
@@ -98,7 +98,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
 
 def cmd_delete(args: argparse.Namespace) -> None:
     setup_logging(args.verbose)
-    adapter = GiteaAdapter(url=get_env("GITEA_URL"), token=get_env("ACCESS_TOKEN"))
+    adapter = GiteaAdapter(config={"url": get_env("GITEA_URL"), "token": get_env("ACCESS_TOKEN")})
     adapter.delete_org(org=args.org, force=args.force, dry_run=args.dry_run)
 
 

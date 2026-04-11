@@ -10,7 +10,7 @@ SAMPLE_REPO = Repo(
 
 @pytest.fixture
 def adapter():
-    return GiteaAdapter(url="http://gitea:3000", token="fake-token")
+    return GiteaAdapter(config={"url": "http://gitea:3000", "token": "fake-token"})
 
 def test_repo_exists_true(adapter):
     with patch.object(adapter._session, "get") as mock_get:
