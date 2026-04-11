@@ -6,7 +6,7 @@ All code runs inside Docker — no local Python install needed.
 
 ```bash
 git clone <repo>
-cd github2gitea-mirror
+cd gitporter
 docker compose build
 ```
 
@@ -36,7 +36,7 @@ Keep PRs focused. One logical change per PR is easier to review and less likely 
 
 See the [Adding a New Adapter](CLAUDE.md#adding-a-new-adapter) section in `CLAUDE.md` for the step-by-step checklist. The short version:
 
-1. Create `github2gitea/adapters/<platform>.py`, subclass `BaseAdapter`
+1. Create `gitporter/adapters/<platform>.py`, subclass `BaseAdapter`
 2. Implement `list_repos`, `create_mirror`, `repo_exists`
 3. Add credentials to `config.py`
 4. Register in `adapters/__init__.py`

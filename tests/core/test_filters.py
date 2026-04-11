@@ -1,6 +1,6 @@
 import pytest
-from github2gitea.core.filters import apply_filters
-from github2gitea.adapters.base import Repo
+from gitporter.core.filters import apply_filters
+from gitporter.adapters.base import Repo
 
 def make_repo(**kwargs):
     defaults = dict(name="repo", clone_url="", description="", private=False,

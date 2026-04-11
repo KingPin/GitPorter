@@ -1,4 +1,4 @@
-# git-migrator
+# Git Porter
 
 Mirror Git repositories between platforms — any source to any destination.
 
@@ -49,8 +49,8 @@ Tokens and credentials for the platforms you use (see [Environment Variables](#e
 ## Quick Start
 
 ```bash
-git clone https://github.com/KingPin/git-migrator.git
-cd git-migrator
+git clone https://github.com/KingPin/GitPorter.git
+cd GitPorter
 docker compose build
 ```
 
@@ -437,7 +437,7 @@ Pass `--visibility private` (or `public`) explicitly. The default is `public`.
 ## Project Structure
 
 ```
-github2gitea/
+gitporter/
 ├── adapters/
 │   ├── __init__.py      # Adapter registry
 │   ├── base.py          # Repo, MigrationResult dataclasses + BaseAdapter ABC

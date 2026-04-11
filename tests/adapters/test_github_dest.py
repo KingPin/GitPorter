@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from github2gitea.adapters.github import GitHubAdapter
-from github2gitea.adapters.base import Repo
+from gitporter.adapters.github import GitHubAdapter
+from gitporter.adapters.base import Repo
 
 SAMPLE_REPO = Repo(
     name="my-repo",

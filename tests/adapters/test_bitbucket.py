@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from github2gitea.adapters.bitbucket import BitbucketAdapter
+from gitporter.adapters.bitbucket import BitbucketAdapter
 
 CONFIG = {
     "workspace": "myworkspace",
@@ -107,7 +107,7 @@ def test_normalize_selects_https_clone_url(adapter):
 # ---------------------------------------------------------------------------
 
 def test_create_mirror_raises(adapter):
-    from github2gitea.adapters.base import Repo
+    from gitporter.adapters.base import Repo
 
     source_repo = Repo(
         name="my-repo",

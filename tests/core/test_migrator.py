@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
-from github2gitea.core.migrator import Migrator
-from github2gitea.adapters.base import Repo, MigrationResult
+from gitporter.core.migrator import Migrator
+from gitporter.adapters.base import Repo, MigrationResult
 
 def make_repo(name, language="Python"):
     return Repo(name=name, clone_url=f"https://github.com/user/{name}.git",

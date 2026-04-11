@@ -1,4 +1,4 @@
-from github2gitea.core.http import parse_next_link
+from gitporter.core.http import parse_next_link
 
 
 def test_parse_next_link_present():

@@ -1,4 +1,4 @@
-from github2gitea.core.parallel import worker_count, run_parallel
+from gitporter.core.parallel import worker_count, run_parallel
 
 def test_worker_count_tiny():
     assert worker_count(3) == 1

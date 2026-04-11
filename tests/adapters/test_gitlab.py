@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import MagicMock, patch, call
 
-from github2gitea.adapters.gitlab import GitLabAdapter
+from gitporter.adapters.gitlab import GitLabAdapter
 
 CONFIG = {"url": "https://gitlab.example.com", "token": "test-token"}
 
@@ -113,7 +113,7 @@ def test_normalize_handles_missing_optional_fields(adapter):
 # ---------------------------------------------------------------------------
 
 def test_create_mirror_returns_migrated(adapter):
-    from github2gitea.adapters.base import Repo
+    from gitporter.adapters.base import Repo
 
     source_repo = Repo(
         name="my-repo",
@@ -144,7 +144,7 @@ def test_create_mirror_returns_migrated(adapter):
 
 
 def test_create_mirror_returns_skipped_on_409(adapter):
-    from github2gitea.adapters.base import Repo
+    from gitporter.adapters.base import Repo
 
     source_repo = Repo(
         name="existing-repo",
