@@ -54,6 +54,15 @@ def test_create_mirror_retries_on_transient_failure(adapter):
     assert result.status == "MIGRATED"
 
 
+def test_create_mirror_with_lfs(adapter):
+    """create_mirror with enable_lfs=True sends 'lfs': True in the POST payload."""
+    with patch.object(adapter._session, "post") as mock_post:
+        mock_post.return_value.status_code = 201
+        adapter.create_mirror(SAMPLE_REPO, enable_lfs=True)
+        call_payload = mock_post.call_args[1]["json"]
+        assert call_payload["lfs"] is True
+
+
 def test_prepare_destination_returns_uid_and_calls_ensure_org(adapter):
     """prepare_destination calls ensure_org + get_org_uid and returns the uid dict."""
     with patch.object(adapter, "ensure_org") as mock_ensure, \

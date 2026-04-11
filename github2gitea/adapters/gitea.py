@@ -68,12 +68,15 @@ class GiteaAdapter(BaseAdapter):
         auth_username = kwargs.get("auth_username", "")
         auth_token = kwargs.get("auth_token", "")
 
+        enable_lfs = kwargs.get("enable_lfs", False)
+
         payload: dict = {
             "clone_addr": repo.clone_url,
             "repo_name": repo.name,
             "description": repo.description,
             "mirror": True,
             "private": repo.private,
+            "lfs": enable_lfs,
         }
         if uid is not None:
             payload["uid"] = uid

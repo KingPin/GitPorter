@@ -82,6 +82,23 @@ def test_create_mirror_subprocess_failure(adapter):
     assert "repository not found" in result.reason
 
 
+def test_create_mirror_with_lfs(adapter):
+    """create_mirror with enable_lfs=True uses 'git lfs clone --mirror'."""
+    post_resp = _make_post_response(201)
+    clone_result = _make_subprocess_result(0)
+    push_result = _make_subprocess_result(0)
+
+    with patch.object(adapter._session, "post", return_value=post_resp), \
+         patch("subprocess.run", side_effect=[clone_result, push_result]) as mock_run, \
+         patch("shutil.rmtree"):
+        result = adapter.create_mirror(SAMPLE_REPO, enable_lfs=True)
+
+    assert result.status == "MIGRATED"
+    clone_call_args = mock_run.call_args_list[0][0][0]
+    assert clone_call_args[:3] == ["git", "lfs", "clone"]
+    assert "--mirror" in clone_call_args
+
+
 def test_repo_exists_true(adapter):
     """repo_exists returns True when API returns 200."""
     resp = MagicMock()

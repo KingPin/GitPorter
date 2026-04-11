@@ -79,8 +79,14 @@ class GitHubAdapter(BaseAdapter):
                 resp.raise_for_status()
 
             # Clone mirror
+            enable_lfs = kwargs.get("enable_lfs", False)
+            clone_cmd = (
+                ["git", "lfs", "clone", "--mirror", repo.clone_url, tmp_path]
+                if enable_lfs
+                else ["git", "clone", "--mirror", repo.clone_url, tmp_path]
+            )
             clone_result = subprocess.run(
-                ["git", "clone", "--mirror", repo.clone_url, tmp_path],
+                clone_cmd,
                 check=False,
                 capture_output=True,
             )
