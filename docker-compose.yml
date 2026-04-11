@@ -1,16 +1,23 @@
+x-common-env: &common-env
+  - GITHUB_TOKEN
+  - GITEA_URL
+  - GITEA_TOKEN
+  - ACCESS_TOKEN
+  - GITLAB_URL
+  - GITLAB_TOKEN
+  - BITBUCKET_WORKSPACE
+  - BITBUCKET_USERNAME
+  - BITBUCKET_APP_PASSWORD
+  - FORGEJO_URL
+  - FORGEJO_TOKEN
+
 services:
   app:
     build: .
-    environment:
-      - GITHUB_TOKEN
-      - ACCESS_TOKEN
-      - GITEA_URL
+    environment: *common-env
 
   test:
     build: .
     entrypoint: ["python", "-m", "pytest"]
     command: ["tests/", "-v"]
-    environment:
-      - GITHUB_TOKEN
-      - ACCESS_TOKEN
-      - GITEA_URL
+    environment: *common-env
