@@ -170,3 +170,16 @@ def test_bitbucket_partial_missing_vars_raises(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         load_platform_config("bitbucket")
     assert exc.value.code == 1
+
+
+# ---------------------------------------------------------------------------
+# 8. Gitea missing token (URL present) raises SystemExit(1)
+# ---------------------------------------------------------------------------
+
+def test_gitea_missing_token_raises(monkeypatch):
+    monkeypatch.setenv("GITEA_URL", "https://gitea.example.com")
+    monkeypatch.delenv("GITEA_TOKEN", raising=False)
+    monkeypatch.delenv("ACCESS_TOKEN", raising=False)
+    with pytest.raises(SystemExit) as exc:
+        load_platform_config("gitea")
+    assert exc.value.code == 1

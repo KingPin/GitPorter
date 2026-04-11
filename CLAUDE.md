@@ -10,6 +10,7 @@ A Python tool for mirroring repos between Git platforms using a plugin/adapter p
 
 ```
 github2gitea/
+├── config.py            # Credential loading + validation per platform
 ├── adapters/
 │   ├── __init__.py      # Adapter registry (_REGISTRY) — register new adapters here
 │   ├── base.py          # Repo, MigrationResult dataclasses + BaseAdapter ABC
@@ -19,7 +20,6 @@ github2gitea/
 │   ├── bitbucket.py     # Bitbucket adapter (source)
 │   └── forgejo.py       # Forgejo adapter (destination + delete_org)
 └── core/
-    ├── config.py        # Credential loading + validation per platform
     ├── http.py          # Link header parsing + exponential backoff
     ├── filters.py       # Repo filtering (name glob, language, topic, ignore list)
     ├── parallel.py      # Auto-scaling ThreadPoolExecutor
@@ -31,7 +31,7 @@ main.py                  # CLI entry point
 
 | Variable                | Required by                                      |
 |-------------------------|--------------------------------------------------|
-| `GITEA_URL`             | Gitea/Forgejo destination                        |
+| `GITEA_URL`             | Gitea destination                                |
 | `GITEA_TOKEN`           | Gitea destination (or `ACCESS_TOKEN` fallback)   |
 | `ACCESS_TOKEN`          | Legacy fallback for `GITEA_TOKEN`                |
 | `GITHUB_TOKEN`          | GitHub source/destination                        |
@@ -57,7 +57,7 @@ docker compose build
 docker compose run --rm test
 
 # Migrate
-docker compose run --rm app migrate --source github --dest gitea --mode org -o <org> -v public
+docker compose run --rm app migrate --source github --dest gitea --mode org -o <org> --visibility public
 docker compose run --rm app migrate --source github --dest gitea --mode user -u <user>
 docker compose run --rm app migrate --source github --dest gitea --mode user -u <user> -o <org>
 docker compose run --rm app migrate --source github --dest gitea --mode star -u <user> -o <org>
@@ -116,6 +116,6 @@ docker compose run --rm app delete --dest forgejo -o <org>
 4. Implement: `list_repos`, `create_mirror`, `repo_exists`
 5. Override `prepare_destination` if the destination needs pre-setup (e.g., Gitea/Forgejo needs org UID)
 6. Override `fetch_one_repo` if single-repo fetch is supported
-7. Add credentials to `core/config.py` — add to `_REQUIRED` dict and return a normalized dict
+7. Add credentials to `github2gitea/config.py` — add to `_REQUIRED` dict and return a normalized dict
 8. Register in `adapters/__init__.py` — add to `_REGISTRY`
 9. Add `--source`/`--dest` to `choices=` in `build_parser()` in `main.py`

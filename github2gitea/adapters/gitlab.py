@@ -130,7 +130,7 @@ class GitLabAdapter(BaseAdapter):
     # Destination: prepare namespace
     # ------------------------------------------------------------------
 
-    def prepare_destination(self, dest_org: str) -> dict:
+    def prepare_destination(self, dest_org: str, visibility: str = "public") -> dict:
         resp = self._session.get(f"{self._url}/api/v4/groups/{dest_org}")
         resp.raise_for_status()
         return {"namespace_id": resp.json()["id"]}

@@ -147,9 +147,11 @@ class GiteaAdapter(BaseAdapter):
                 f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases",
                 params={"limit": 50, "page": page},
             )
-            if not resp.ok or not resp.json():
+            resp.raise_for_status()
+            batch = resp.json()
+            if not batch:
                 break
-            existing_tags.update(r["tag_name"] for r in resp.json())
+            existing_tags.update(r["tag_name"] for r in batch)
             page += 1
 
         for release in releases:
@@ -173,18 +175,19 @@ class GiteaAdapter(BaseAdapter):
             release_id = resp.json()["id"]
 
             for asset in release.get("assets", []):
-                asset_resp = requests.get(asset["browser_download_url"], stream=True)
-                if not asset_resp.ok:
-                    logger.warning("Failed to download asset %s", asset["name"])
-                    continue
-                upload_resp = self._session.post(
-                    f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases/{release_id}/assets",
-                    params={"name": asset["name"]},
-                    data=asset_resp.content,
-                    headers={"Content-Type": "application/octet-stream"},
-                )
-                if not upload_resp.ok:
-                    logger.warning("Failed to upload asset %s: %s", asset["name"], upload_resp.text)
+                with requests.get(asset["browser_download_url"], stream=True) as asset_resp:
+                    if not asset_resp.ok:
+                        logger.warning("Failed to download asset %s", asset["name"])
+                        continue
+                    asset_resp.raw.decode_content = True
+                    upload_resp = self._session.post(
+                        f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases/{release_id}/assets",
+                        params={"name": asset["name"]},
+                        data=asset_resp.raw,
+                        headers={"Content-Type": "application/octet-stream"},
+                    )
+                    if not upload_resp.ok:
+                        logger.warning("Failed to upload asset %s: %s", asset["name"], upload_resp.text)
 
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
         """Delete a Gitea org and all its repos. Supports dry run and force modes."""
