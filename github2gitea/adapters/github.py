@@ -114,6 +114,19 @@ class GitHubAdapter(BaseAdapter):
         finally:
             shutil.rmtree(tmp_path, ignore_errors=True)
 
+    def fetch_releases(self, owner: str, repo_name: str) -> list[dict]:
+        """Fetch all releases for a repo from GitHub, handling pagination."""
+        url = f"{self._api_base}/repos/{owner}/{repo_name}/releases"
+        releases = []
+        while url:
+            resp = self._session.get(url)
+            resp.raise_for_status()
+            releases.extend(resp.json())
+            url = parse_next_link(resp.headers.get("Link", ""))
+            if url:
+                time.sleep(self._api_delay)
+        return releases
+
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
         raise NotImplementedError("GitHub org deletion is not supported")
 

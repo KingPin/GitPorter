@@ -19,6 +19,7 @@ class Migrator:
         ignore_names: list[str] | None = None,
         enable_lfs: bool = False,
         cleanup_action: str | None = None,
+        include_releases: bool = False,
     ):
         self._source = source
         self._dest = dest
@@ -27,6 +28,7 @@ class Migrator:
         self._dest_org = dest_org
         self._enable_lfs = enable_lfs
         self._cleanup_action = cleanup_action
+        self._include_releases = include_releases
 
     def run(
         self,
@@ -72,10 +74,22 @@ class Migrator:
         if self._enable_lfs:
             dest_kwargs["enable_lfs"] = True
 
-        results += run_parallel(
+        migrated_results = run_parallel(
             lambda repo: self._dest.create_mirror(repo, dest_org=self._dest_org, **dest_kwargs),
             to_migrate,
         )
+        results += migrated_results
+
+        # Phase 4.5: Mirror releases
+        if self._include_releases:
+            for result in migrated_results:
+                if result.status == "MIGRATED":
+                    repo = next((r for r in to_migrate if r.name == result.repo_name), None)
+                    if repo:
+                        releases = self._source.fetch_releases(repo.owner, repo.name)
+                        if releases:
+                            self._dest.mirror_releases(repo.name, self._dest_org or repo.owner, releases)
+                            logger.info("Mirrored %d releases for %s", len(releases), repo.name)
 
         # Phase 5: Cleanup orphaned dest repos
         if self._cleanup_action and self._dest_org and not self._dry_run:
