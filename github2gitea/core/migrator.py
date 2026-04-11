@@ -17,12 +17,14 @@ class Migrator:
         topic: str | None = None,
         dest_org: str | None = None,
         ignore_names: list[str] | None = None,
+        enable_lfs: bool = False,
     ):
         self._source = source
         self._dest = dest
         self._dry_run = dry_run
         self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic, ignore_names=ignore_names)
         self._dest_org = dest_org
+        self._enable_lfs = enable_lfs
 
     def run(
         self,
@@ -64,6 +66,8 @@ class Migrator:
             return results
 
         dest_kwargs = self._dest.prepare_destination(self._dest_org) if self._dest_org else {}
+        if self._enable_lfs:
+            dest_kwargs["enable_lfs"] = True
 
         results += run_parallel(
             lambda repo: self._dest.create_mirror(repo, dest_org=self._dest_org, **dest_kwargs),
