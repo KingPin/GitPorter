@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 # ---------------------------------------------------------------------------
 
 def _make_github_adapter(session=None, api_delay=0.0):
-    from github2gitea.adapters.github import GitHubAdapter
+    from gitporter.adapters.github import GitHubAdapter
     adapter = GitHubAdapter(config={"token": "tok"}, api_delay=api_delay)
     if session is not None:
         adapter._session = session
@@ -16,7 +16,7 @@ def _make_github_adapter(session=None, api_delay=0.0):
 
 
 def _make_gitea_adapter(session=None):
-    from github2gitea.adapters.gitea import GiteaAdapter
+    from gitporter.adapters.gitea import GiteaAdapter
     adapter = GiteaAdapter(config={"url": "http://gitea.test", "token": "tok"})
     if session is not None:
         adapter._session = session

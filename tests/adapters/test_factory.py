@@ -1,11 +1,11 @@
 import pytest
 
-from github2gitea.adapters import get_adapter, VALID_PLATFORMS
-from github2gitea.adapters.github    import GitHubAdapter
-from github2gitea.adapters.gitea     import GiteaAdapter
-from github2gitea.adapters.gitlab    import GitLabAdapter
-from github2gitea.adapters.bitbucket import BitbucketAdapter
-from github2gitea.adapters.forgejo   import ForgejoAdapter
+from gitporter.adapters import get_adapter, VALID_PLATFORMS
+from gitporter.adapters.github    import GitHubAdapter
+from gitporter.adapters.gitea     import GiteaAdapter
+from gitporter.adapters.gitlab    import GitLabAdapter
+from gitporter.adapters.bitbucket import BitbucketAdapter
+from gitporter.adapters.forgejo   import ForgejoAdapter
 
 
 def test_unknown_platform_raises_value_error():

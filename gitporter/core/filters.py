@@ -1,5 +1,5 @@
 import fnmatch
-from github2gitea.adapters.base import Repo
+from gitporter.adapters.base import Repo
 
 
 def apply_filters(

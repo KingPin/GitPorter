@@ -1,5 +1,5 @@
-from github2gitea.adapters.forgejo import ForgejoAdapter
-from github2gitea.adapters.gitea import GiteaAdapter
+from gitporter.adapters.forgejo import ForgejoAdapter
+from gitporter.adapters.gitea import GiteaAdapter
 
 
 def test_forgejo_instantiation():

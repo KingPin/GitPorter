@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from github2gitea.adapters.gitea import GiteaAdapter
-from github2gitea.adapters.base import Repo
+from gitporter.adapters.gitea import GiteaAdapter
+from gitporter.adapters.base import Repo
 
 SAMPLE_REPO = Repo(
     name="my-repo", clone_url="https://github.com/user/my-repo.git",
@@ -49,7 +49,7 @@ def test_create_mirror_retries_on_transient_failure(adapter):
         MagicMock(status_code=201),
     ]
     with patch.object(adapter._session, "post", side_effect=responses):
-        with patch("github2gitea.adapters.gitea.time.sleep"):  # don't actually sleep
+        with patch("gitporter.adapters.gitea.time.sleep"):  # don't actually sleep
             result = adapter.create_mirror(SAMPLE_REPO)
     assert result.status == "MIGRATED"
 

@@ -1,7 +1,7 @@
-"""Tests for github2gitea/config.py"""
+"""Tests for gitporter/config.py"""
 import pytest
 
-from github2gitea.config import load_platform_config
+from gitporter.config import load_platform_config
 
 
 # ---------------------------------------------------------------------------

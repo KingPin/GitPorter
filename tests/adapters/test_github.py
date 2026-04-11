@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from github2gitea.adapters.github import GitHubAdapter
+from gitporter.adapters.github import GitHubAdapter
 
 SAMPLE_REPO_JSON = {
     "name": "my-repo",

@@ -7,9 +7,9 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
-from github2gitea.adapters import get_adapter
-from github2gitea.config import load_platform_config
-from github2gitea.core.migrator import Migrator
+from gitporter.adapters import get_adapter
+from gitporter.config import load_platform_config
+from gitporter.core.migrator import Migrator
 
 console = Console()
 
@@ -102,7 +102,7 @@ def cmd_delete(args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="github2gitea",
+        prog="gitporter",
         description="Mirror repos between Git platforms.",
     )
     parser.add_argument("--verbose", "-v", action="store_true")

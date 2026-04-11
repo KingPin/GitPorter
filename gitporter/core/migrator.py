@@ -1,7 +1,7 @@
 import logging
-from github2gitea.adapters.base import BaseAdapter, MigrationResult
-from github2gitea.core.filters import apply_filters
-from github2gitea.core.parallel import run_parallel
+from gitporter.adapters.base import BaseAdapter, MigrationResult
+from gitporter.core.filters import apply_filters
+from gitporter.core.parallel import run_parallel
 
 logger = logging.getLogger(__name__)
 

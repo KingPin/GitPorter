@@ -9,7 +9,7 @@ A Python tool for mirroring repos between Git platforms using a plugin/adapter p
 ## Project Structure
 
 ```
-github2gitea/
+gitporter/
 ├── config.py            # Credential loading + validation per platform
 ├── adapters/
 │   ├── __init__.py      # Adapter registry (_REGISTRY) — register new adapters here
@@ -115,12 +115,12 @@ docker compose run --rm app delete --dest bitbucket -o <workspace>    # deletes 
 
 ## Adding a New Adapter
 
-1. Create `github2gitea/adapters/<platform>.py`
+1. Create `gitporter/adapters/<platform>.py`
 2. Subclass `BaseAdapter` from `adapters/base.py`
 3. Set `platform_name = "<platform>"` class attribute
 4. Implement: `list_repos`, `create_mirror`, `repo_exists`
 5. Override `prepare_destination` if the destination needs pre-setup (e.g., Gitea/Forgejo needs org UID)
 6. Override `fetch_one_repo` if single-repo fetch is supported
-7. Add credentials to `github2gitea/config.py` — add to `_REQUIRED` dict and return a normalized dict
+7. Add credentials to `gitporter/config.py` — add to `_REQUIRED` dict and return a normalized dict
 8. Register in `adapters/__init__.py` — add to `_REGISTRY`
 9. Add `--source`/`--dest` to `choices=` in `build_parser()` in `main.py`
