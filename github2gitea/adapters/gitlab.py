@@ -117,7 +117,10 @@ class GitLabAdapter(BaseAdapter):
                 capture_output=True,
             )
             if push_result.returncode != 0:
-                raise RuntimeError(push_result.stderr.decode().strip())
+                err = push_result.stderr.decode().strip()
+                if self._token:
+                    err = err.replace(self._token, "***")
+                raise RuntimeError(err)
 
             return MigrationResult(repo.name, "MIGRATED")
 
