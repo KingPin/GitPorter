@@ -52,3 +52,15 @@ def test_create_mirror_retries_on_transient_failure(adapter):
         with patch("github2gitea.adapters.gitea.time.sleep"):  # don't actually sleep
             result = adapter.create_mirror(SAMPLE_REPO)
     assert result.status == "MIGRATED"
+
+
+def test_prepare_destination_returns_uid_and_calls_ensure_org(adapter):
+    """prepare_destination calls ensure_org + get_org_uid and returns the uid dict."""
+    with patch.object(adapter, "ensure_org") as mock_ensure, \
+         patch.object(adapter, "get_org_uid", return_value=42) as mock_uid:
+        result = adapter.prepare_destination("myorg")
+    mock_ensure.assert_called_once_with("myorg")
+    mock_uid.assert_called_once_with("myorg")
+    assert result["uid"] == 42
+    assert "auth_username" in result
+    assert "auth_token" in result
