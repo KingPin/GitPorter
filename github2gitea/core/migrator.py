@@ -16,11 +16,12 @@ class Migrator:
         language: str | None = None,
         topic: str | None = None,
         dest_org: str | None = None,
+        ignore_names: list[str] | None = None,
     ):
         self._source = source
         self._dest = dest
         self._dry_run = dry_run
-        self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic)
+        self._filter_kwargs = dict(name_pattern=name_pattern, language=language, topic=topic, ignore_names=ignore_names)
         self._dest_org = dest_org
 
     def run(
