@@ -212,15 +212,22 @@ class GiteaAdapter(BaseAdapter):
             if confirm != org:
                 raise SystemExit(f"Aborted: '{confirm}' != '{org}'")
 
+        deleted = 0
+        failed = 0
         for name in repos:
             r = self._session.delete(f"{self._url}/api/v1/repos/{org}/{name}")
             if r.status_code not in (204, 200, 404):
                 logger.warning("Failed to delete %s/%s: HTTP %s", org, name, r.status_code)
+                failed += 1
+            else:
+                deleted += 1
             time.sleep(0.5)
 
         r = self._session.delete(f"{self._url}/api/v1/orgs/{org}")
         if r.status_code not in (204, 200, 404):
             r.raise_for_status()
+
+        logger.info("Deleted %d repos and org '%s'. Failed: %d", deleted, org, failed)
 
     def _paginate(self, url: str) -> list[Repo]:
         repos: list[Repo] = []
