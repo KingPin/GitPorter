@@ -50,8 +50,8 @@ def _validate_migrate_args(args: argparse.Namespace) -> None:
         console.print("[red]Error:[/red] --mode user requires --user"); sys.exit(1)
     if args.mode == "star" and (not args.user or not args.org):
         console.print("[red]Error:[/red] --mode star requires --user and --org"); sys.exit(1)
-    if args.mode == "repo" and (not args.repo or not args.user):
-        console.print("[red]Error:[/red] --mode repo requires --repo and --user"); sys.exit(1)
+    if args.mode == "repo" and not args.repo:
+        console.print("[red]Error:[/red] --mode repo requires --repo"); sys.exit(1)
     if args.source == "bitbucket" and args.mode == "star":
         console.print("[red]Error:[/red] Bitbucket does not support --mode star"); sys.exit(1)
 
@@ -69,6 +69,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         console.print("[bold yellow][DRY RUN][/bold yellow] No repos will be migrated.")
 
     ignore_names = [s.strip() for s in args.ignore_repos.split(",") if s.strip()] if args.ignore_repos else None
+    source_token = source_cfg.get("token", "")
     migrator = Migrator(
         source=source, dest=dest, dry_run=args.dry_run,
         name_pattern=args.filter_name, language=args.filter_language,
@@ -78,6 +79,7 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         cleanup_action=args.cleanup_action,
         include_releases=args.include_releases,
         visibility=args.visibility or "public",
+        source_token=source_token,
     )
     results = migrator.run(mode=args.mode, user=args.user, org=args.org, repo_url=args.repo)
     print_summary(results)

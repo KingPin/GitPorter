@@ -78,8 +78,25 @@ class GitHubAdapter(BaseAdapter):
                 "private": repo.private,
             }
             resp = self._session.post(url, json=payload)
-            if resp.status_code not in (201, 422):  # 422 = already exists
-                resp.raise_for_status()
+            if resp.status_code != 201:
+                if resp.status_code == 422:
+                    try:
+                        error_body = resp.json()
+                    except ValueError:
+                        error_body = {}
+                    message = str(error_body.get("message", "")).lower()
+                    errors = error_body.get("errors", [])
+                    already_exists = any(
+                        isinstance(error, dict)
+                        and error.get("resource") == "Repository"
+                        and error.get("field") == "name"
+                        and "already exists" in str(error.get("message", "")).lower()
+                        for error in errors
+                    ) or "already exists" in message
+                    if not already_exists:
+                        resp.raise_for_status()
+                else:
+                    resp.raise_for_status()
 
             # Clone mirror
             enable_lfs = kwargs.get("enable_lfs", False)

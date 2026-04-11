@@ -46,6 +46,12 @@ def load_platform_config(platform: str) -> dict:
 
     if platform == "gitea":
         token = os.environ.get("GITEA_TOKEN") or os.environ.get("ACCESS_TOKEN", "")
+        if not token:
+            console.print(
+                "[red]Error:[/red] Missing required token for [bold]gitea[/bold]: "
+                "set GITEA_TOKEN or ACCESS_TOKEN"
+            )
+            sys.exit(1)
         return {
             "url": os.environ.get("GITEA_URL", "").rstrip("/"),
             "token": token,

@@ -21,6 +21,7 @@ class Migrator:
         cleanup_action: str | None = None,
         include_releases: bool = False,
         visibility: str = "public",
+        source_token: str = "",
     ):
         self._source = source
         self._dest = dest
@@ -31,6 +32,7 @@ class Migrator:
         self._cleanup_action = cleanup_action
         self._include_releases = include_releases
         self._visibility = visibility
+        self._source_token = source_token
 
     def run(
         self,
@@ -44,7 +46,12 @@ class Migrator:
         if mode == "repo":
             if not repo_url:
                 raise ValueError("--repo is required when --mode repo is used")
-            repos = [self._source.fetch_one_repo(repo_url)]
+            try:
+                repos = [self._source.fetch_one_repo(repo_url)]
+            except NotImplementedError as exc:
+                raise ValueError(
+                    "The selected source platform does not support --mode repo"
+                ) from exc
         else:
             repos = self._source.list_repos(mode=mode, user=user, org=org)
         logger.info("Fetched %d repos.", len(repos))
@@ -73,6 +80,8 @@ class Migrator:
             return results
 
         dest_kwargs = self._dest.prepare_destination(self._dest_org, visibility=self._visibility) if self._dest_org else {}
+        if self._source_token:
+            dest_kwargs.setdefault("auth_token", self._source_token)
         if self._enable_lfs:
             dest_kwargs["enable_lfs"] = True
 
