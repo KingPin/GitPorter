@@ -68,7 +68,7 @@ def test_prepare_destination_returns_uid_and_calls_ensure_org(adapter):
     with patch.object(adapter, "ensure_org") as mock_ensure, \
          patch.object(adapter, "get_org_uid", return_value=42) as mock_uid:
         result = adapter.prepare_destination("myorg")
-    mock_ensure.assert_called_once_with("myorg")
+    mock_ensure.assert_called_once_with("myorg", visibility="public")
     mock_uid.assert_called_once_with("myorg")
     assert result["uid"] == 42
     assert "auth_username" in result

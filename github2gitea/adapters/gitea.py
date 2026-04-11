@@ -56,9 +56,9 @@ class GiteaAdapter(BaseAdapter):
         if r.status_code not in (201, 422):
             r.raise_for_status()
 
-    def prepare_destination(self, dest_org: str) -> dict:
+    def prepare_destination(self, dest_org: str, visibility: str = "public") -> dict:
         """Ensure org exists and return migration kwargs with uid."""
-        self.ensure_org(dest_org)
+        self.ensure_org(dest_org, visibility=visibility)
         uid = self.get_org_uid(dest_org)
         return {"uid": uid, "auth_username": "", "auth_token": ""}
 
@@ -139,8 +139,18 @@ class GiteaAdapter(BaseAdapter):
 
     def mirror_releases(self, repo_name: str, owner: str, releases: list[dict]) -> None:
         """Mirror releases from source to Gitea, skipping already-existing tags."""
-        resp = self._session.get(f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases")
-        existing_tags = {r["tag_name"] for r in resp.json()} if resp.ok else set()
+        # Fetch all existing release tags (paginated)
+        existing_tags: set[str] = set()
+        page = 1
+        while True:
+            resp = self._session.get(
+                f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases",
+                params={"limit": 50, "page": page},
+            )
+            if not resp.ok or not resp.json():
+                break
+            existing_tags.update(r["tag_name"] for r in resp.json())
+            page += 1
 
         for release in releases:
             if release["tag_name"] in existing_tags:

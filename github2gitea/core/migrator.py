@@ -20,6 +20,7 @@ class Migrator:
         enable_lfs: bool = False,
         cleanup_action: str | None = None,
         include_releases: bool = False,
+        visibility: str = "public",
     ):
         self._source = source
         self._dest = dest
@@ -29,6 +30,7 @@ class Migrator:
         self._enable_lfs = enable_lfs
         self._cleanup_action = cleanup_action
         self._include_releases = include_releases
+        self._visibility = visibility
 
     def run(
         self,
@@ -70,7 +72,7 @@ class Migrator:
             results += [MigrationResult(r.name, "SKIPPED", "dry run") for r in to_migrate]
             return results
 
-        dest_kwargs = self._dest.prepare_destination(self._dest_org) if self._dest_org else {}
+        dest_kwargs = self._dest.prepare_destination(self._dest_org, visibility=self._visibility) if self._dest_org else {}
         if self._enable_lfs:
             dest_kwargs["enable_lfs"] = True
 
@@ -80,29 +82,32 @@ class Migrator:
         )
         results += migrated_results
 
-        # Phase 4.5: Mirror releases
-        if self._include_releases:
-            for result in migrated_results:
-                if result.status == "MIGRATED":
-                    repo = next((r for r in to_migrate if r.name == result.repo_name), None)
-                    if repo:
-                        releases = self._source.fetch_releases(repo.owner, repo.name)
-                        if releases:
-                            self._dest.mirror_releases(repo.name, self._dest_org or repo.owner, releases)
-                            logger.info("Mirrored %d releases for %s", len(releases), repo.name)
+        # Phase 4.5: Mirror releases (runs for MIGRATED and SKIPPED repos)
+        if self._include_releases and not self._dry_run:
+            migrated_names = {r.repo_name for r in results if r.status in ("MIGRATED", "SKIPPED")}
+            for repo in repos:  # repos = filtered list from Phase 2
+                if repo.name in migrated_names:
+                    releases = self._source.fetch_releases(repo.owner, repo.name)
+                    if releases:
+                        self._dest.mirror_releases(repo.name, self._dest_org or repo.owner, releases)
+                        logger.info("Mirrored %d releases for %s", len(releases), repo.name)
 
         # Phase 5: Cleanup orphaned dest repos
         if self._cleanup_action and self._dest_org and not self._dry_run:
-            source_names = {r.name for r in all_source_repos}
-            dest_names = self._dest.list_dest_repos(self._dest_org)
-            orphans = [n for n in dest_names if n not in source_names]
-            logger.info("Cleanup: %d orphaned repos in dest.", len(orphans))
-            for name in orphans:
-                if self._cleanup_action == "archive":
-                    self._dest.archive_repo(name, self._dest_org)
-                    logger.info("Archived orphan: %s", name)
-                elif self._cleanup_action == "delete":
-                    self._dest.delete_repo(name, self._dest_org)
-                    logger.info("Deleted orphan: %s", name)
+            try:
+                dest_names = self._dest.list_dest_repos(self._dest_org)
+            except NotImplementedError as e:
+                logger.warning("--cleanup-action ignored: %s", e)
+            else:
+                source_names = {r.name for r in all_source_repos}
+                orphans = [n for n in dest_names if n not in source_names]
+                logger.info("Cleanup: %d orphaned repos in dest.", len(orphans))
+                for name in orphans:
+                    if self._cleanup_action == "archive":
+                        self._dest.archive_repo(name, self._dest_org)
+                        logger.info("Archived orphan: %s", name)
+                    elif self._cleanup_action == "delete":
+                        self._dest.delete_repo(name, self._dest_org)
+                        logger.info("Deleted orphan: %s", name)
 
         return results

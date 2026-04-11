@@ -97,9 +97,10 @@ def test_gitea_mirror_releases_creates_release():
 def test_gitea_mirror_releases_skips_existing_tag():
     """mirror_releases skips a release if the tag already exists in Gitea."""
     existing_resp = _mock_response([{"tag_name": "v1.0", "id": 1}])
+    empty_resp = _mock_response([])  # pagination terminator
 
     session = MagicMock()
-    session.get.return_value = existing_resp
+    session.get.side_effect = [existing_resp, empty_resp]
 
     adapter = _make_gitea_adapter(session)
     releases = [{"tag_name": "v1.0", "name": "Release 1", "body": "", "draft": False, "prerelease": False, "assets": []}]
@@ -112,7 +113,7 @@ def test_gitea_mirror_releases_skips_existing_tag():
 
 def test_gitea_mirror_releases_uploads_asset():
     """mirror_releases uploads assets for a newly created release."""
-    existing_resp = _mock_response([])
+    existing_resp = _mock_response([])  # empty → pagination breaks immediately
     create_resp = _mock_response({"id": 99, "tag_name": "v1.0"}, status_code=201)
     upload_resp = _mock_response({"id": 1}, status_code=201)
 
@@ -121,7 +122,7 @@ def test_gitea_mirror_releases_uploads_asset():
     asset_download_resp.content = b"binary data"
 
     session = MagicMock()
-    session.get.return_value = existing_resp
+    session.get.return_value = existing_resp  # always returns [] so pagination terminates
     session.post.side_effect = [create_resp, upload_resp]
 
     adapter = _make_gitea_adapter(session)
