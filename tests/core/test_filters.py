@@ -33,3 +33,27 @@ def test_multiple_filters_are_anded():
 def test_no_filters_returns_all():
     repos = [make_repo(), make_repo(name="other")]
     assert apply_filters(repos) == repos
+
+def test_ignore_names_filters_exact_match():
+    repos = [make_repo(name="archived"), make_repo(name="active")]
+    result = apply_filters(repos, ignore_names=["archived"])
+    assert [r.name for r in result] == ["active"]
+
+def test_ignore_names_is_case_sensitive():
+    repos = [make_repo(name="archived"), make_repo(name="Archived")]
+    result = apply_filters(repos, ignore_names=["archived"])
+    assert [r.name for r in result] == ["Archived"]
+
+def test_ignore_names_empty_list_returns_all():
+    repos = [make_repo(name="archived"), make_repo(name="active")]
+    result = apply_filters(repos, ignore_names=[])
+    assert result == repos
+
+def test_ignore_names_combined_with_language_filter():
+    repos = [
+        make_repo(name="archived", language="Python"),
+        make_repo(name="active", language="Python"),
+        make_repo(name="other", language="Go"),
+    ]
+    result = apply_filters(repos, language="python", ignore_names=["archived"])
+    assert [r.name for r in result] == ["active"]

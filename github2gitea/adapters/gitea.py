@@ -8,12 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 class GiteaAdapter(BaseAdapter):
-    def __init__(self, url: str, token: str, api_delay: float = 1.0):
-        self._url = url.rstrip("/")
+    platform_name = "gitea"
+
+    def __init__(self, config: dict, api_delay: float = 1.0):
+        self._url = config["url"].rstrip("/")
+        self._token = config["token"]
         self._api_delay = api_delay
         self._session = requests.Session()
         self._session.headers.update({
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {self._token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
         })
@@ -53,15 +56,27 @@ class GiteaAdapter(BaseAdapter):
         if r.status_code not in (201, 422):
             r.raise_for_status()
 
-    def create_mirror(self, repo: Repo, dest_org: str | None = None, uid: int | None = None,
-                      auth_username: str | None = None, auth_token: str | None = None) -> MigrationResult:
+    def prepare_destination(self, dest_org: str, visibility: str = "public") -> dict:
+        """Ensure org exists and return migration kwargs with uid."""
+        self.ensure_org(dest_org, visibility=visibility)
+        uid = self.get_org_uid(dest_org)
+        return {"uid": uid, "auth_username": "", "auth_token": ""}
+
+    def create_mirror(self, repo: Repo, dest_org: str | None = None, **kwargs) -> MigrationResult:
         """Migrate repo as a mirror into Gitea. Retries on transient failures."""
+        uid = kwargs.get("uid")
+        auth_username = kwargs.get("auth_username", "")
+        auth_token = kwargs.get("auth_token", "")
+
+        enable_lfs = kwargs.get("enable_lfs", False)
+
         payload: dict = {
             "clone_addr": repo.clone_url,
             "repo_name": repo.name,
             "description": repo.description,
             "mirror": True,
             "private": repo.private,
+            "lfs": enable_lfs,
         }
         if uid is not None:
             payload["uid"] = uid
@@ -91,6 +106,88 @@ class GiteaAdapter(BaseAdapter):
 
         return MigrationResult(repo_name=repo.name, status="FAILED",
                                reason=f"Failed after {max_attempts} attempts")
+
+    def list_dest_repos(self, owner: str) -> list[str]:
+        """Return repo names in a Gitea org, using page-based pagination."""
+        page = 1
+        names: list[str] = []
+        while True:
+            resp = self._session.get(
+                f"{self._url}/api/v1/orgs/{owner}/repos",
+                params={"limit": 50, "page": page},
+            )
+            resp.raise_for_status()
+            batch = resp.json()
+            if not batch:
+                break
+            names.extend(r["name"] for r in batch)
+            page += 1
+        return names
+
+    def archive_repo(self, name: str, owner: str) -> None:
+        """Archive a repo in Gitea."""
+        resp = self._session.patch(
+            f"{self._url}/api/v1/repos/{owner}/{name}",
+            json={"archived": True},
+        )
+        resp.raise_for_status()
+
+    def delete_repo(self, name: str, owner: str) -> None:
+        """Delete a repo in Gitea."""
+        resp = self._session.delete(f"{self._url}/api/v1/repos/{owner}/{name}")
+        resp.raise_for_status()
+
+    def mirror_releases(self, repo_name: str, owner: str, releases: list[dict]) -> None:
+        """Mirror releases from source to Gitea, skipping already-existing tags."""
+        # Fetch all existing release tags (paginated)
+        existing_tags: set[str] = set()
+        page = 1
+        while True:
+            resp = self._session.get(
+                f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases",
+                params={"limit": 50, "page": page},
+            )
+            resp.raise_for_status()
+            batch = resp.json()
+            if not batch:
+                break
+            existing_tags.update(r["tag_name"] for r in batch)
+            page += 1
+
+        for release in releases:
+            if release["tag_name"] in existing_tags:
+                logger.debug("Skipping existing release tag: %s", release["tag_name"])
+                continue
+
+            payload = {
+                "tag_name": release["tag_name"],
+                "name": release.get("name", "") or release["tag_name"],
+                "body": release.get("body", "") or "",
+                "draft": release.get("draft", False),
+                "prerelease": release.get("prerelease", False),
+            }
+            resp = self._session.post(
+                f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases", json=payload
+            )
+            if not resp.ok:
+                logger.warning("Failed to create release %s: %s", release["tag_name"], resp.text)
+                continue
+            release_id = resp.json()["id"]
+
+            for asset in release.get("assets", []):
+                with requests.get(asset["browser_download_url"], stream=True) as asset_resp:
+                    if not asset_resp.ok:
+                        logger.warning("Failed to download asset %s", asset["name"])
+                        continue
+                    asset_resp.raw.decode_content = True
+                    upload_resp = self._session.post(
+                        f"{self._url}/api/v1/repos/{owner}/{repo_name}/releases/{release_id}/assets",
+                        params={"name": asset["name"]},
+                        data=asset_resp.raw,
+                        headers={"Content-Type": "application/octet-stream"},
+                    )
+                    if not upload_resp.ok:
+                        logger.warning("Failed to upload asset %s: %s", asset["name"], upload_resp.text)
 
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
         """Delete a Gitea org and all its repos. Supports dry run and force modes."""

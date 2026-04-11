@@ -15,7 +15,7 @@ SAMPLE_REPO_JSON = {
 
 @pytest.fixture
 def adapter():
-    return GitHubAdapter(token="fake-token")
+    return GitHubAdapter(config={"token": "fake-token"})
 
 def test_normalize_repo(adapter):
     repo = adapter._normalize(SAMPLE_REPO_JSON)
@@ -24,10 +24,6 @@ def test_normalize_repo(adapter):
     assert repo.topics == ["python", "tool"]
     assert repo.language == "Python"
     assert repo.source_type == "github"
-
-def test_create_mirror_raises(adapter):
-    with pytest.raises(NotImplementedError):
-        adapter.create_mirror(MagicMock())
 
 def test_delete_org_raises(adapter):
     with pytest.raises(NotImplementedError):
