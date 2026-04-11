@@ -9,3 +9,4 @@ __pycache__/
 *.key
 *.crt
 .claude/
+docs/
