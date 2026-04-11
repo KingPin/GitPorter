@@ -147,8 +147,50 @@ class GitHubAdapter(BaseAdapter):
                 time.sleep(self._api_delay)
         return releases
 
+    def prepare_destination(self, dest_org: str, visibility: str = "public") -> dict:
+        """Ensure the GitHub org exists (it must already; GitHub doesn't allow API org creation).
+        Returns empty dict — GitHub repos are created inside create_mirror directly."""
+        resp = self._session.get(f"{self._api_base}/orgs/{dest_org}")
+        if resp.status_code == 404:
+            raise SystemExit(
+                f"GitHub org '{dest_org}' does not exist. "
+                "GitHub organizations cannot be created via API — create it manually first."
+            )
+        resp.raise_for_status()
+        return {}
+
     def delete_org(self, org: str, force: bool = False, dry_run: bool = False) -> None:
-        raise NotImplementedError("GitHub org deletion is not supported")
+        """Delete all repos in a GitHub org, then delete the org itself."""
+        url: str | None = f"{self._api_base}/orgs/{org}/repos"
+        repo_names: list[str] = []
+        while url:
+            resp = self._session.get(url, params={"per_page": 100})
+            if resp.status_code == 404:
+                raise SystemExit(f"GitHub org '{org}' not found.")
+            resp.raise_for_status()
+            repo_names.extend(r["name"] for r in resp.json())
+            url = parse_next_link(resp.headers.get("Link", ""))
+
+        if dry_run:
+            logger.info("[DRY RUN] Would delete %d repos and org '%s'", len(repo_names), org)
+            for name in repo_names:
+                logger.info("[DRY RUN] Would delete: %s/%s", org, name)
+            return
+
+        if not force:
+            confirm = input(f"Type '{org}' to confirm deletion: ").strip()
+            if confirm != org:
+                raise SystemExit(f"Aborted: '{confirm}' != '{org}'")
+
+        for name in repo_names:
+            resp = self._session.delete(f"{self._api_base}/repos/{org}/{name}")
+            if resp.status_code not in (204, 404):
+                logger.warning("Failed to delete %s/%s: HTTP %s", org, name, resp.status_code)
+            time.sleep(0.3)
+
+        resp = self._session.delete(f"{self._api_base}/orgs/{org}")
+        if resp.status_code not in (204, 404):
+            resp.raise_for_status()
 
     def _paginate(self, url: str, params: dict | None = None) -> list[Repo]:
         repos = []
