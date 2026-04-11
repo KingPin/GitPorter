@@ -14,10 +14,22 @@ x-common-env: &common-env
 services:
   app:
     build: .
+    image: gitporter:latest
+    restart: "no"
     environment: *common-env
+    env_file:
+      - path: .env
+        required: false
 
   test:
     build: .
+    image: gitporter:latest
+    restart: "no"
     entrypoint: ["python", "-m", "pytest"]
     command: ["tests/", "-v"]
     environment: *common-env
+    env_file:
+      - path: .env
+        required: false
+    profiles:
+      - test
