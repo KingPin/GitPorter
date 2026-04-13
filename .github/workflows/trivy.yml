@@ -30,10 +30,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/gitporter:latest
+          image-ref: ghcr.io/${{ env.OWNER_LC }}/gitporter:latest
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
