@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Workflow
+
+- Commit and push small changes directly to `master` — do not open PRs for minor fixes, CI tweaks, or config changes.
+- Only open a PR when explicitly asked.
+
 ## Overview
 
 A Python tool for mirroring repos between Git platforms using a plugin/adapter pattern. Each platform (GitHub, Gitea, GitLab, Bitbucket, Forgejo) is a self-contained adapter. A pipeline orchestrator runs fetch → filter → resume-check → migrate → summary.
