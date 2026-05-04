@@ -4,6 +4,9 @@ Mirror Git repositories between platforms — any source to any destination.
 
 Runs entirely inside Docker. No local Python installation required.
 
+> [!TIP]
+> **Not sure which command to run?** Use the [interactive command builder](https://kingpin.github.io/GitPorter/) — pick your source and destination platforms, set your options, and get the exact `docker compose run` command to copy-paste. Tokens are never entered on the page.
+
 ---
 
 ## Supported Platforms
