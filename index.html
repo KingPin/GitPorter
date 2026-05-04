@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gitporter — command builder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-name">gitporter</span>
+    <span class="brand-sub">command builder</span>
+  </div>
+  <div class="header-links">
+    <a href="https://github.com/KingPin/GitPorter#readme" target="_blank" rel="noopener">Docs</a>
+    <a href="https://github.com/KingPin/GitPorter" target="_blank" rel="noopener">GitHub ↗</a>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙 Dark</button>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- ── Tabs ──────────────────────────────────────────────────────── -->
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="migrate">migrate</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="delete">delete</button>
+  </nav>
+
+  <!-- ══════════════════ MIGRATE TAB ══════════════════════════════════ -->
+  <section class="tab-panel active" id="tab-migrate" role="tabpanel">
+
+    <!-- Platforms -->
+    <div class="card">
+      <p class="card-title">Platforms</p>
+      <div class="platform-row">
+        <div class="field">
+          <label for="m-source">Source <span class="req">*</span></label>
+          <select id="m-source">
+            <option value="">— pick source —</option>
+            <option value="github">GitHub</option>
+            <option value="gitea">Gitea</option>
+            <option value="gitlab">GitLab</option>
+            <option value="bitbucket">Bitbucket</option>
+          </select>
+        </div>
+        <div class="platform-arrow">→</div>
+        <div class="field">
+          <label for="m-dest">Destination <span class="req">*</span></label>
+          <select id="m-dest">
+            <option value="">— pick destination —</option>
+            <option value="gitea">Gitea</option>
+            <option value="forgejo">Forgejo</option>
+            <option value="github">GitHub</option>
+            <option value="gitlab">GitLab</option>
+            <option value="bitbucket">Bitbucket</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credentials -->
+    <div class="card" id="m-creds-card">
+      <p class="card-title">Credentials</p>
+      <p class="note">URLs are used in the command. Tokens are never entered here — placeholders will appear in the output below.</p>
+      <div class="grid-2" id="m-url-fields">
+        <div class="field hidden" id="f-gitea-url-src">
+          <label for="m-gitea-url">Gitea URL <span class="req">*</span></label>
+          <input type="url" id="m-gitea-url" placeholder="http://gitea:3000" autocomplete="off">
+        </div>
+        <div class="field hidden" id="f-gitlab-url">
+          <label for="m-gitlab-url">GitLab URL <span class="req">*</span></label>
+          <input type="url" id="m-gitlab-url" placeholder="https://gitlab.com" autocomplete="off">
+        </div>
+        <div class="field hidden" id="f-forgejo-url">
+          <label for="m-forgejo-url">Forgejo URL <span class="req">*</span></label>
+          <input type="url" id="m-forgejo-url" placeholder="http://forgejo:3000" autocomplete="off">
+        </div>
+        <div class="info-note hidden" id="f-bitbucket-note">
+          Bitbucket needs no URL. <code>BITBUCKET_WORKSPACE</code>, <code>BITBUCKET_USERNAME</code>, and <code>BITBUCKET_APP_PASSWORD</code> will appear as placeholders in the export block below.
+        </div>
+      </div>
+      <div id="m-github-dest-warning" class="inline-warning hidden">
+        ⚠ GitHub destination: the org must already exist — GitHub's API does not support creating organisations.
+      </div>
+    </div>
+
+    <!-- Migration options -->
+    <div class="card">
+      <p class="card-title">Migration</p>
+      <div class="grid-3">
+        <div class="field">
+          <label for="m-mode">Mode <span class="req">*</span></label>
+          <select id="m-mode">
+            <option value="">— pick mode —</option>
+            <option value="org">org</option>
+            <option value="user">user</option>
+            <option value="star">star</option>
+            <option value="repo">repo</option>
+          </select>
+        </div>
+        <div class="field hidden" id="f-org">
+          <label for="m-org">Org / group <span class="req">*</span></label>
+          <input type="text" id="m-org" placeholder="my-org" autocomplete="off">
+        </div>
+        <div class="field hidden" id="f-user">
+          <label for="m-user">Username <span class="req">*</span></label>
+          <input type="text" id="m-user" placeholder="octocat" autocomplete="off">
+        </div>
+        <div class="field hidden" id="f-repo">
+          <label for="m-repo">Repo URL <span class="req">*</span></label>
+          <input type="url" id="m-repo" placeholder="https://github.com/owner/repo" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="m-visibility">Visibility</label>
+          <select id="m-visibility">
+            <option value="public">public</option>
+            <option value="private">private</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="m-star-hint" style="margin-top:8px;" hidden>
+        ⚠ <em>star</em> mode is not supported by the Bitbucket API — select a different source or mode.
+      </p>
+    </div>
+
+    <!-- Filters & options (collapsible) -->
+    <div class="collapsible" id="col-filters">
+      <div class="collapsible-header" tabindex="0" role="button" aria-expanded="false">
+        <span class="caret">▶</span>
+        Filters &amp; options
+        <span class="sub">(name glob, language, topic, ignore list, LFS, releases, cleanup)</span>
+      </div>
+      <div class="collapsible-body">
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div class="field">
+            <label for="m-filter-name">--filter-name <span style="font-weight:400;text-transform:none;">(glob)</span></label>
+            <input type="text" id="m-filter-name" placeholder="*-service" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="m-filter-lang">--filter-language</label>
+            <input type="text" id="m-filter-lang" placeholder="python" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="m-filter-topic">--filter-topic</label>
+            <input type="text" id="m-filter-topic" placeholder="ml" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="m-ignore-repos">--ignore-repos <span style="font-weight:400;text-transform:none;">(comma-sep)</span></label>
+            <input type="text" id="m-ignore-repos" placeholder="repo1,repo2" autocomplete="off">
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="field">
+            <label for="m-cleanup">--cleanup-action</label>
+            <select id="m-cleanup" style="max-width:200px;">
+              <option value="">(none)</option>
+              <option value="archive">archive</option>
+              <option value="delete">delete</option>
+            </select>
+          </div>
+        </div>
+        <div class="checkbox-group">
+          <label class="checkbox-item">
+            <input type="checkbox" id="m-lfs"> --lfs
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="m-releases"> --include-releases
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced (collapsible) -->
+    <div class="collapsible" id="col-advanced">
+      <div class="collapsible-header" tabindex="0" role="button" aria-expanded="false">
+        <span class="caret">▶</span>
+        Advanced
+        <span class="sub">(dry run, disable workflows, verbose)</span>
+      </div>
+      <div class="collapsible-body">
+        <div class="checkbox-group">
+          <label class="checkbox-item">
+            <input type="checkbox" id="m-dry-run"> --dry-run
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="m-disable-workflows"> --disable-workflows
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="m-verbose"> --verbose / -v
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════ DELETE TAB ════════════════════════════════════ -->
+  <section class="tab-panel" id="tab-delete" role="tabpanel">
+
+    <div class="warning-banner">
+      <span>⚠</span>
+      <span><strong>Destructive action.</strong> This permanently removes repositories from the destination. Use <code>--dry-run</code> first to preview what would be deleted.</span>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Delete options</p>
+      <div class="grid-2">
+        <div class="field">
+          <label for="d-dest">Destination <span class="req">*</span></label>
+          <select id="d-dest">
+            <option value="">— pick destination —</option>
+            <option value="gitea">Gitea</option>
+            <option value="forgejo">Forgejo</option>
+            <option value="github">GitHub</option>
+            <option value="gitlab">GitLab</option>
+            <option value="bitbucket">Bitbucket</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="d-org">Org / group <span class="req">*</span></label>
+          <input type="text" id="d-org" placeholder="my-org" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Delete credentials (URL fields for self-hosted) -->
+      <div id="d-url-fields" style="margin-top:10px;">
+        <div class="field hidden" id="f-d-gitea-url">
+          <label for="d-gitea-url">Gitea URL <span class="req">*</span></label>
+          <input type="url" id="d-gitea-url" placeholder="http://gitea:3000" autocomplete="off">
+        </div>
+        <div class="field hidden" id="f-d-gitlab-url">
+          <label for="d-gitlab-url">GitLab URL <span class="req">*</span></label>
+          <input type="url" id="d-gitlab-url" placeholder="https://gitlab.com" autocomplete="off">
+        </div>
+        <div class="field hidden" id="f-d-forgejo-url">
+          <label for="d-forgejo-url">Forgejo URL <span class="req">*</span></label>
+          <input type="url" id="d-forgejo-url" placeholder="http://forgejo:3000" autocomplete="off">
+        </div>
+        <div class="info-note hidden" id="f-d-bitbucket-note" style="margin-top:8px;">
+          Bitbucket needs no URL. <code>BITBUCKET_WORKSPACE</code>, <code>BITBUCKET_USERNAME</code>, and <code>BITBUCKET_APP_PASSWORD</code> will appear as placeholders in the export block below.
+        </div>
+        <div class="info-note hidden" id="f-d-github-note" style="margin-top:8px;">
+          Note: this will delete all repositories in the org, then attempt to delete the org itself.
+        </div>
+      </div>
+
+      <div class="checkbox-group" style="margin-top:14px;">
+        <label class="checkbox-item">
+          <input type="checkbox" id="d-dry-run">
+          --dry-run
+          <span class="badge badge-recommended">recommended</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="d-force">
+          --force
+          <span class="badge badge-warning">skips confirmation</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="d-verbose"> --verbose / -v
+        </label>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════ OUTPUT (shared) ═══════════════════════════════ -->
+  <div class="output-card">
+    <p class="output-title">Generated Command</p>
+    <div id="output-placeholder" class="output-placeholder">
+      Fill in the fields above to generate your command.
+    </div>
+    <div id="output-content" class="hidden">
+      <div class="output-section">
+        <p class="output-label">1 — Set environment variables</p>
+        <div class="code-block" id="output-exports"></div>
+        <div class="copy-row">
+          <button class="btn-copy" id="copy-exports">Copy exports</button>
+        </div>
+      </div>
+      <div class="output-section">
+        <p class="output-label">2 — Run</p>
+        <div class="code-block" id="output-command"></div>
+        <div class="copy-row">
+          <button class="btn-copy" id="copy-command">Copy command</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
