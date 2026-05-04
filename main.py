@@ -106,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Mirror repos between Git platforms.",
     )
     parser.add_argument("--verbose", "-v", action="store_true")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
 
     # migrate subcommand
     m = sub.add_parser("migrate", help="Mirror repos from source to destination")
@@ -143,5 +143,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == "__main__":
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    if not getattr(args, "command", None):
+        parser.print_help()
+        sys.exit(0)
     args.func(args)
