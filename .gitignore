@@ -9,4 +9,5 @@ __pycache__/
 *.key
 *.crt
 .claude/
+.superpowers/
 docs/
